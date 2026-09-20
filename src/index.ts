@@ -1,5 +1,6 @@
 // 核心模块导出
 export * from './ai';
+export * from './agent';
 export * from './theme';
 export * from './shortcuts';
 export * from './notifications';
