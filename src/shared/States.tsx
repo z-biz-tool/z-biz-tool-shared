@@ -1,5 +1,5 @@
 import { Spin, Result, Button, Tag } from "antd";
-import { InboxOutlined, ReloadOutlined, CloudOutlined, FallbackIcon } from "@ant-design/icons";
+import { InboxOutlined, ReloadOutlined, CloudOutlined, CloseOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
 
 // 渐变色定义
@@ -198,10 +198,6 @@ export function LoadingState({
                 color: "#667eea",
                 filter: 'drop-shadow(0 4px 12px rgba(102,126,234,0.3))'
               }}
-              indicatorStyle={{ 
-                color: "#667eea",
-                animation: 'spin-slow 1s linear infinite'
-              }}
             />
             <div 
               style={{ 
@@ -271,7 +267,7 @@ export function ErrorState({
           zIndex: 1
         }}
       >
-        <FallbackIcon 
+        <CloseOutlined 
           style={{ 
             fontSize: 40, 
             color: "white",

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTheme } from 'z-biz-tool-shared/theme';
-import { toastManager } from 'z-biz-tool-shared/notifications';
+import { useTheme } from '../theme';
+import { toastManager } from '../notifications';
 
 // 导航栏组件
 export const Navbar: React.FC<{

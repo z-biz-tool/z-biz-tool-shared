@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNotificationStore } from '../notifications/notificationManager';
-import { ToastType } from '../shortcuts/types';
+import { ToastType } from './types';
 
 // Toast 样式
 const toastStyles: Record<ToastType, string> = {

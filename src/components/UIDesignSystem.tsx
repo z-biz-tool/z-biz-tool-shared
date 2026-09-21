@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useTheme } from 'z-biz-tool-shared/theme';
+import { useTheme } from '../theme';
 
 // 设计令牌
 export const DESIGN_TOKENS = {

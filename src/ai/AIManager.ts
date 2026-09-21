@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AIProvider, AIConfig, AIFunctionType, AIFunctionParams, AIResult, AIContext } from './types';
+import { AIConfig, AIFunctionType, AIFunctionParams, AIResult, AIContext, Agent } from './types';
 
 // AI 客户端接口
 interface AIClient {
@@ -108,7 +108,7 @@ class OpenAIClient implements AIClient {
     return prompt;
   }
 
-  private buildPrompt(functionType: AIFunctionType, params: AIFunctionParams, context?: AIContext): string {
+  private buildPrompt(functionType: AIFunctionType, params: AIFunctionParams, _context?: AIContext): string {
     switch (functionType) {
       case 'explain':
         return `Please explain this command or code:\n\n${params.text}`;

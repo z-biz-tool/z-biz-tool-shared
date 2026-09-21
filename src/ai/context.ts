@@ -11,7 +11,7 @@ export class ContextManager {
   }
 
   // 设置文件内容
-  async setFileContents(fileContents: Record<string, string>): void {
+  setFileContents(fileContents: Record<string, string>): void {
     this.context.fileContents = fileContents;
   }
 

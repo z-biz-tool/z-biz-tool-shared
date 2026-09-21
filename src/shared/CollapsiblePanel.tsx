@@ -1,4 +1,4 @@
-import { useState, type ReactNode, useEffect, useRef } from "react";
+import React, { useState, type ReactNode, useEffect, useRef } from "react";
 import { theme } from "antd";
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 
@@ -175,9 +175,9 @@ export function CollapsiblePanel({
                 justifyContent: 'center'
               }}
             >
-              {React.cloneElement(icon as React.ReactElement, {
+              {React.cloneElement(icon as React.ReactElement<any>, {
                 style: {
-                  ...(icon.props as any).style,
+                  ...((icon as React.ReactElement<any>).props?.style),
                   color: expanded ? "#667eea" : token.colorTextSecondary,
                   filter: expanded ? 'drop-shadow(0 2px 4px rgba(102,126,234,0.2))' : 'none'
                 }

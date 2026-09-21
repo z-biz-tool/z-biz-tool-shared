@@ -19,7 +19,7 @@ interface QueryHistoryViewerProps {
 }
 
 export const QueryHistoryViewer: React.FC<QueryHistoryViewerProps> = ({ onCopySql }) => {
-  const [history, setHistory] = useState<QueryHistoryItem[]>([]);
+  const [history] = useState<QueryHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

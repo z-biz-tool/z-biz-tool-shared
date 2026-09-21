@@ -3,11 +3,12 @@
  */
 
 import React, { createContext, useContext, useEffect } from 'react';
-import { useThemeStore, initTheme } from 'z-biz-tool-shared/theme';
+import { useThemeStore, initTheme } from './themeManager';
+import type { ThemeColors } from './types';
 
 interface ThemeContextType {
   currentTheme: string;
-  themeColors: Record<string, string>;
+  themeColors: ThemeColors;
   setTheme: (theme: string) => void;
 }
 

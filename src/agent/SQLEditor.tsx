@@ -1,11 +1,7 @@
-// SQL 编辑器 - 共享组件
+// SQL 编辑器 - 共享组件（无外部编辑器依赖）
 import { useState } from 'react';
-import { Card, Button, Space, Typography, message } from 'antd';
-import { PlayOutlined, CopyOutlined, SaveOutlined } from '@ant-design/icons';
-import ReactCodeMirror from '@uiw/react-codemirror';
-import { sql } from '@codemirror/lang-sql';
-
-const { Text } = Typography;
+import { Card, Button, Space, Input, message } from 'antd';
+import { PlayCircleOutlined, CopyOutlined, SaveOutlined } from '@ant-design/icons';
 
 interface SQLEditorProps {
   value?: string;
@@ -18,20 +14,19 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({
   onChange,
   onExecute,
 }) => {
-  const [sql, setSql] = useState(value);
+  const [code, setCode] = useState(value);
   const [isExecuting, setIsExecuting] = useState(false);
 
   const handleExecute = async () => {
-    if (!sql.trim()) {
+    if (!code.trim()) {
       message.warning('SQL 不能为空');
       return;
     }
 
     setIsExecuting(true);
     try {
-      const result = await onExecute?.(sql);
+      await onExecute?.(code);
       message.success('查询执行成功');
-      // TODO: 显示结果
     } catch (error: any) {
       message.error('查询执行失败: ' + error.message);
     } finally {
@@ -46,7 +41,7 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({
         <Space>
           <Button
             type="primary"
-            icon={<PlayOutlined />}
+            icon={<PlayCircleOutlined />}
             loading={isExecuting}
             onClick={handleExecute}
           >
@@ -55,7 +50,7 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({
           <Button
             icon={<CopyOutlined />}
             onClick={() => {
-              navigator.clipboard.writeText(sql);
+              navigator.clipboard.writeText(code);
               message.success('已复制到剪贴板');
             }}
           >
@@ -72,22 +67,19 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({
         </Space>
       }
     >
-      <div style={{ height: '400px' }}>
-        <ReactCodeMirror
-          value={sql}
-          onChange={(val) => {
-            setSql(val);
-            onChange?.(val);
-          }}
-          extensions={[sql()]}
-          theme="dark"
-          style={{
-            fontSize: '14px',
-            height: '100%',
-            fontFamily: 'monospace',
-          }}
-        />
-      </div>
+      <Input.TextArea
+        value={code}
+        onChange={(e) => {
+          setCode(e.target.value);
+          onChange?.(e.target.value);
+        }}
+        placeholder="输入 SQL..."
+        rows={14}
+        style={{
+          fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+          fontSize: 13,
+        }}
+      />
     </Card>
   );
 };

@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import type { InputRef } from "antd";
 import { Input, Dropdown, type MenuProps } from "antd";
 import {
   SearchOutlined,
@@ -12,7 +13,7 @@ import {
   ArrowLeftOutlined,
   ArrowUpOutlined,
   HistoryOutlined,
-  CommandOutlined,
+  MacCommandOutlined,
 } from "@ant-design/icons";
 import type { FC } from "react";
 
@@ -48,8 +49,8 @@ const Omnibar: FC<OmnibarProps> = ({
   const [commandInput, setCommandInput] = useState("");
   const [pathEditing, setPathEditing] = useState(false);
   
-  const inputRef = useRef<HTMLInputElement>(null);
-  const commandRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<InputRef>(null);
+  const commandRef = useRef<InputRef>(null);
 
   // 当切换模式时聚焦到相应输入框
   useEffect(() => {
@@ -401,7 +402,7 @@ const Omnibar: FC<OmnibarProps> = ({
           {[
             { key: 'navigation', icon: <HistoryOutlined />, label: '路径' },
             { key: 'search', icon: <SearchOutlined />, label: '搜索' },
-            { key: 'command', icon: <CommandOutlined />, label: '命令' },
+            { key: 'command', icon: <MacCommandOutlined />, label: '命令' },
           ].map((m) => (
             <button
               key={m.key}

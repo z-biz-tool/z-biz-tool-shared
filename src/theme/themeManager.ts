@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ThemeName, ThemeConfig } from './types';
+import { ThemeName, ThemeConfig, type ThemeColors } from './types';
 
 // 主题配置
 const themes: Record<ThemeName, ThemeConfig> = {
@@ -131,7 +131,7 @@ interface ThemeStore {
   themeConfig: ThemeConfig;
   setTheme: (theme: ThemeName) => void;
   updateTheme: (theme: Partial<ThemeConfig>) => void;
-  getThemeColors: () => Record<string, string>;
+  getThemeColors: () => ThemeColors;
 }
 
 export const useThemeStore = create<ThemeStore>((set, get) => ({

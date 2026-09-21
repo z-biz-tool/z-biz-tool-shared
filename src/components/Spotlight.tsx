@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTheme } from 'z-biz-tool-shared/theme';
-import { useShortcutStore } from 'z-biz-tool-shared/shortcuts';
-import { toastManager } from 'z-biz-tool-shared/notifications';
+import { useTheme } from '../theme';
+import { useShortcutStore } from '../shortcuts';
+import { toastManager } from '../notifications';
 
 // Spotlight 命令
 export interface SpotlightCommand {
@@ -367,6 +367,7 @@ export const Spotlight: React.FC<{
         </div>
       </div>
     </div>
+    </>
   );
 };
 

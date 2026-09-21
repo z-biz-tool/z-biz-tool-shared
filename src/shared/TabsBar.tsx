@@ -219,7 +219,6 @@ export default function TabsBar({ onOpenNewTab, onSwitchTo }: Props) {
         items={items}
         style={{ flex: 1, minHeight: 32 }}
         tabBarStyle={{ margin: 0, borderBottom: "none" }}
-        cardGutter={6}
       />
       
       <Tooltip title="新建标签页 (⌘+T)">
