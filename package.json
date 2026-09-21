@@ -1,24 +1,83 @@
 {
   "name": "z-biz-tool-shared",
   "version": "0.1.0",
-  "description": "z-biz-tool 核心共享模块",
-  "private": true,
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "description": "z-biz-tool 核心共享模块（AI/Agent/主题/快捷键/组件）",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
+    },
+    "./ai/types": {
+      "types": "./dist/ai/types.d.ts",
+      "default": "./dist/ai/types.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "default": "./dist/agent/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "default": "./dist/theme/index.js"
+    },
+    "./shortcuts": {
+      "types": "./dist/shortcuts/index.d.ts",
+      "default": "./dist/shortcuts/index.js"
+    },
+    "./notifications": {
+      "types": "./dist/notifications/index.d.ts",
+      "default": "./dist/notifications/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "default": "./dist/components/index.js"
+    },
+    "./interactions": {
+      "types": "./dist/interactions/index.d.ts",
+      "default": "./dist/interactions/index.js"
+    },
+    "./styles": {
+      "types": "./dist/styles/index.d.ts",
+      "default": "./dist/styles/index.js"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts,tsx"
   },
-  "dependencies": {
-    "zustand": "^5.0.0",
-    "immer": "^10.1.0",
-    "react": "^19.0.0",
-    "antd": "^6.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/z-biz-tool/z-biz-tool-shared.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
     "@ant-design/icons": "^6.0.0",
-    "@uiw/react-codemirror": "^4.0.0",
-    "@codemirror/lang-sql": "^6.0.0"
+    "antd": "^6.0.0",
+    "react": "^19.0.0",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "antd": "^6.0.0",
+    "react": "^19.0.0",
+    "zustand": "^5.0.0",
     "typescript": "^5.7.0",
     "@types/react": "^19.0.0",
     "@types/node": "^22.0.0",
