@@ -4,12 +4,12 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import { useThemeStore, initTheme } from './themeManager';
-import type { ThemeColors } from './types';
+import type { ThemeColors, ThemeName } from './types';
 
 interface ThemeContextType {
-  currentTheme: string;
+  currentTheme: ThemeName;
   themeColors: ThemeColors;
-  setTheme: (theme: string) => void;
+  setTheme: (theme: ThemeName) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

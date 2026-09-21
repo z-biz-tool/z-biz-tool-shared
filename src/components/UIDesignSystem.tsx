@@ -317,7 +317,6 @@ export const Input: React.FC<{
   placeholder = '', 
   type = 'text', 
   disabled = false,
-  className = '',
   icon,
   error
 }) => {
@@ -367,8 +366,7 @@ export const Textarea: React.FC<{
   onChange, 
   placeholder = '', 
   rows = 4, 
-  disabled = false,
-  className = ''
+  disabled = false
 }) => {
   const { themeColors } = useTheme();
 

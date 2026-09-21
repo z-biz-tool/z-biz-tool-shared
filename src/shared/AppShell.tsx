@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { Layout, Button, Space, Typography, theme, Tooltip } from "antd";
+import { Layout, Button, Space, Typography, Tooltip } from "antd";
 import {
   BulbOutlined,
   BulbFilled,
@@ -33,7 +33,6 @@ export function AppShell({
   onToggleSider,
 }: AppShellProps) {
   const { mode, toggle } = useTheme();
-  const { token } = theme.useToken();
 
   // 监听系统主题变化（仅在用户未手动覆盖时，这里仅作为提示）
   useEffect(() => {
@@ -47,9 +46,8 @@ export function AppShell({
   const headerGradient = mode === "dark"
     ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
     : "linear-gradient(135deg, #ffffff 0%, #f8fafd 100%)";
-  
+
   const brandGradient = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-  const brandGradientHover = "linear-gradient(135deg, #764ba2 0%, #667eea 100%)";
 
   return (
     <Layout style={{ height: "100vh" }}>

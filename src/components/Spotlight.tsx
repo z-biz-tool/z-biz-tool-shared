@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../theme';
-import { useShortcutStore } from '../shortcuts';
 import { toastManager } from '../notifications';
 
 // Spotlight 命令

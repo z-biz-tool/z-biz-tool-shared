@@ -98,24 +98,24 @@ export const USER_FLOWS = {
 export const InteractionFeedback = {
   // 快速反馈
   toast: {
-    showSuccess: (message: string, duration?: number) => {},
-    showError: (message: string, duration?: number) => {},
-    showWarning: (message: string, duration?: number) => {},
-    showInfo: (message: string, duration?: number) => {}
+    showSuccess: (_message: string, _duration?: number) => {},
+    showError: (_message: string, _duration?: number) => {},
+    showWarning: (_message: string, _duration?: number) => {},
+    showInfo: (_message: string, _duration?: number) => {}
   },
-  
+
   // 持久反馈
   progress: {
-    show: (message: string, value: number) => {},
-    update: (value: number) => {},
+    show: (_message: string, _value: number) => {},
+    update: (_value: number) => {},
     complete: () => {},
     cancel: () => {}
   },
-  
+
   // 视觉反馈
   highlight: {
-    element: (element: HTMLElement, color?: string) => {},
-    line: (line: number, color?: string) => {}
+    element: (_element: HTMLElement, _color?: string) => {},
+    line: (_line: number, _color?: string) => {}
   }
 };
 
@@ -139,7 +139,7 @@ export const DRAG_DROP = {
   end: {
     dropZoneHighlight: true,
     animation: 'slide',
-    callback: (dropped: boolean) => {}
+    callback: (_dropped: boolean) => {}
   }
 };
 

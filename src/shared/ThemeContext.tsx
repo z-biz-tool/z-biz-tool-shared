@@ -115,9 +115,9 @@ export const ThemeToggle: React.FC<{ size?: "small" | "middle" | "large" }> = ({
 };
 
 // 带下拉菜单的主题选择器
-export const ThemeSelector: React.FC<{ popup?: boolean }> = ({ popup = false }) => {
-  const { mode, toggle } = useTheme();
-  const { token } = antdTheme.useToken();
+export const ThemeSelector: React.FC<{ popup?: boolean }> = ({ popup: _popup = false }) => {
+  const { mode } = useTheme();
+  const { token: _token } = antdTheme.useToken();
 
   const items = [
     {
@@ -158,7 +158,7 @@ export const ThemeSelector: React.FC<{ popup?: boolean }> = ({ popup = false }) 
     },
   ];
 
-  const [internalMode, setModeInternal] = useState(mode);
+  const [, setModeInternal] = useState(mode);
 
   return (
     <div>

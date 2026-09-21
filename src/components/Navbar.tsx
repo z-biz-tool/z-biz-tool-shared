@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTheme } from '../theme';
-import { toastManager } from '../notifications';
 
 // 导航栏组件
 export const Navbar: React.FC<{

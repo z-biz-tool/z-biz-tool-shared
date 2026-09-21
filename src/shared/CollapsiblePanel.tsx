@@ -42,7 +42,7 @@ export function CollapsiblePanel({
   onExpandedChange,
   extra,
   icon,
-  gradient = defaultGradient,
+  gradient: _gradient = defaultGradient,
 }: CollapsiblePanelProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const { token } = theme.useToken();

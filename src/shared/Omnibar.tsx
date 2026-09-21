@@ -3,9 +3,9 @@
  * 来源：Files v4 的 Omnibar 设计
  */
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { InputRef } from "antd";
-import { Input, Dropdown, type MenuProps } from "antd";
+import { Input, Dropdown } from "antd";
 import {
   SearchOutlined,
   SettingOutlined,

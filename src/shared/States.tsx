@@ -1,10 +1,9 @@
-import { Spin, Result, Button, Tag } from "antd";
-import { InboxOutlined, ReloadOutlined, CloudOutlined, CloseOutlined } from "@ant-design/icons";
+import { Spin, Button, Tag } from "antd";
+import { ReloadOutlined, CloudOutlined, CloseOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
 
 // 渐变色定义
 const brandGradient = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-const brandGradientLight = "linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%)";
 
 interface EmptyStateProps {
   title?: string;

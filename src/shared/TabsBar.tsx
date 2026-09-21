@@ -39,8 +39,8 @@ export default function TabsBar({ onOpenNewTab, onSwitchTo }: Props) {
   // 示例中使用 mock 数据展示效果
   const tabs = [] as Array<{ id: string; path: string; kind: "directory" | "library" | "media" }>;
   const activeTabId = "" as string;
-  const closeTab = (id: string) => {};
-  const switchTab = (id: string) => {};
+  const closeTab = (_id: string) => {};
+  const switchTab = (_id: string) => {};
 
   if (tabs.length === 0) return null;
 

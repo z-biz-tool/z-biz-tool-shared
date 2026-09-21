@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ToastConfig, ToastType } from './types';
+import { ToastConfig } from './types';
 
 // Toast 存储
 interface NotificationStore {
