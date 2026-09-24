@@ -1,6 +1,6 @@
 {
   "name": "z-biz-tool-shared",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "z-biz-tool 核心共享模块（AI/Agent/主题/快捷键/组件）",
   "type": "module",
   "main": "dist/index.js",
@@ -49,6 +49,10 @@
     "./shared": {
       "types": "./dist/shared/index.d.ts",
       "default": "./dist/shared/index.js"
+    },
+    "./capability": {
+      "types": "./dist/capability/types.d.ts",
+      "default": "./dist/capability/types.js"
     }
   },
   "files": [
