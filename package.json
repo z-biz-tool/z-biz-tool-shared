@@ -1,6 +1,7 @@
 {
   "name": "z-biz-tool-shared",
   "version": "0.1.1",
+  "license": "MIT",
   "description": "z-biz-tool 核心共享模块（AI/Agent/主题/快捷键/组件）",
   "type": "module",
   "main": "dist/index.js",
