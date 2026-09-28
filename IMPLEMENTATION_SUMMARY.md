@@ -244,7 +244,7 @@
 
 1. **其它子项目集成**
    - [ ] z-biz-tool-file 集成统一 AI 中台
-   - [ ] z-biz-tool-knowledge 集成统一 AI 中台
+   - [ ] z-biz-tool-kb 集成统一 AI 中台
    - [ ] z-biz-tool-db 集成统一主题系统
 
 2. **增强功能**

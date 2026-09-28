@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTheme } from '../theme';
-import { toastManager } from '../notifications';
 
 // Spotlight 命令
 export interface SpotlightCommand {
@@ -15,59 +14,34 @@ export interface SpotlightCommand {
 }
 
 // Spotlight 组件
-export const Spotlight: React.FC<{ 
-  isOpen: boolean; 
-  onClose: () => void 
-}> = ({ isOpen, onClose }) => {
+export const Spotlight: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  /** 命令由宿主应用注入。组件自己不猜宿主能做什么 —— 以前这里硬编码三条「开发中」假动作 */
+  commands?: SpotlightCommand[];
+  emptyHint?: string;
+}> = ({ isOpen, onClose, commands = [], emptyHint = '没有匹配的命令' }) => {
   const { themeColors } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
-  const [commands, setCommands] = useState<SpotlightCommand[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 加载所有命令
-  useEffect(() => {
-    if (isOpen) {
-      // 按类别分组
-      const categorizedCommands: SpotlightCommand[] = [
-        // 其他系统命令
-        {
-          id: 'settings',
-          title: '打开设置',
-          category: 'system',
-          action: () => toastManager.info('设置功能开发中...'),
-          shortcut: ['Ctrl', ',', 'Shift']
-        },
-        {
-          id: 'help',
-          title: '打开帮助',
-          category: 'system',
-          action: () => toastManager.info('帮助文档开发中...'),
-          shortcut: ['F1']
-        },
-        {
-          id: 'about',
-          title: '关于',
-          category: 'system',
-          action: () => toastManager.info('关于 z-biz-tool'),
-          shortcut: ['Ctrl', 'Shift', 'A']
-        }
-      ];
-
-      setCommands(categorizedCommands);
-    }
-  }, [isOpen]);
-
   // 过滤命令
-  const filteredCommands = commands.filter(cmd => {
-    const queryLower = query.toLowerCase();
-    return (
+  const filteredCommands = useMemo(() => {
+    const queryLower = query.trim().toLowerCase();
+    if (!queryLower) return commands;
+    return commands.filter(cmd =>
       cmd.title.toLowerCase().includes(queryLower) ||
       cmd.description?.toLowerCase().includes(queryLower) ||
       cmd.keywords?.some(k => k.toLowerCase().includes(queryLower))
     );
-  });
+  }, [commands, query]);
+
+  // 换查询词后高亮必须回到第一条，否则 Enter 会打到上一轮筛出来的那一条
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query, isOpen]);
 
   // 快捷键处理
   useEffect(() => {
@@ -256,10 +230,12 @@ export const Spotlight: React.FC<{
               style={{ color: themeColors.textSecondary }}
             >
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-              <p>未找到匹配的命令</p>
-              <p style={{ fontSize: '14px', marginTop: '8px' }}>
-                尝试: {query.toLowerCase()}
-              </p>
+              <p>{commands.length === 0 ? '这个应用还没有注册任何命令' : emptyHint}</p>
+              {commands.length > 0 && (
+                <p style={{ fontSize: '14px', marginTop: '8px' }}>
+                  尝试: {query.toLowerCase()}
+                </p>
+              )}
             </div>
           ) : (
             <ul>
