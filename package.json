@@ -65,7 +65,7 @@
     "verify": "node scripts/check-dist.mjs",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --import ./tests/register-ts-ext.mjs --test tests/*.test.ts",
     "lint": "eslint src --ext ts,tsx"
   },
   "repository": {
