@@ -24,6 +24,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 跨语言契约测试要读兄弟仓的 Rust 源码，2026-10-04 实测这条流水线此前**每次都跳过**它们：
+      # runner 上只有本仓，`capability 仓不在盘上` 恒成立，于是
+      # tests/capability-contract.test.ts 里那 3 条「TS 契约 ↔ Rust pub fn」交叉校验
+      # 在 CI 上是死的，而 npm test 照样退 0，job 照样报 success。
+      # 日志实证：# pass 12 / # fail 0 / # skipped 3 —— 跳过的恰好是这个文件里
+      # 最值钱的三条（该文件自己的注释：契约漂移是这类分层里最难发现的一类 bug）。
+      #
+      # 放在 $GITHUB_WORKSPACE/z-biz-tool-capability —— 正好是测试里
+      # `resolve(HERE, "../../z-biz-tool-capability/...")` 解析出来的那个位置，不改测试。
+      - name: Checkout z-biz-tool-capability（跨语言契约测试要读它的 Rust 源码）
+        uses: actions/checkout@v4
+        with:
+          repository: z-biz-tool/z-biz-tool-capability
+          path: z-biz-tool-capability
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -35,6 +50,21 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # 哨兵：上面那次 checkout 哪天被删掉/改了 path，测试会**静默恢复成跳过**，
+      # CI 依然一片绿。所以这里先把前提钉死 —— 前提不成立就直接红，
+      # 而不是让 3 条检查悄悄退化成 0 条。
+      - name: 哨兵：跨语言契约测试的前提必须在（否则那 3 条会静默跳过）
+        run: |
+          set -euo pipefail
+          lib="z-biz-tool-capability/crates/cap-img/src/lib.rs"
+          if [ ! -f "${lib}" ]; then
+            echo "❌ ${lib} 不在工作区里 —— capability-contract.test.ts 的 3 条交叉校验会全部跳过"
+            echo "   （node:test 把 skip 记为 ok，npm test 仍退 0，job 仍报绿）"
+            echo "   查上面那次 actions/checkout 的 repository / path。"
+            exit 1
+          fi
+          echo "✅ 跨语言契约测试的前提在：${lib}"
 
       # 本仓的 tests/*.test.ts 此前从来没进过 CI：仓库里有测试、package.json 里有
       # test 脚本，但这条流水线只跑 typecheck + build（Rust 那边有 cargo test，
