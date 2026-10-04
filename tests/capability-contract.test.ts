@@ -17,8 +17,26 @@ import { fileURLToPath } from "node:url";
 import type { CapImgCommands } from "../src/capability/types.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-/** capability 仓在组织里的同级位置；不在盘上时下面那条交叉校验会跳过而不是假装通过 */
-const RUST_LIB = resolve(HERE, "../../z-biz-tool-capability/crates/cap-img/src/lib.rs");
+/**
+ * capability 仓的位置；不在盘上时下面那三条交叉校验会跳过而不是假装通过。
+ *
+ * **为什么 CI 不用 `../../` 去猜同级**（2026-10-04 实测踩过）：
+ * `actions/checkout` 只要有任何一个 step 带 `path:`，**第一个不带 path 的
+ * checkout 也会被嵌进 `$GITHUB_WORKSPACE/<仓名>`**。于是本仓实际落在
+ * `$GITHUB_WORKSPACE/z-biz-tool-shared/`，`resolve(HERE, "../../…")` 指向
+ * `$GITHUB_WORKSPACE/..` —— **workspace 之外**，而 checkout 的 `path:`
+ * 写不到那里。
+ *
+ * 后果很隐蔽：CI 日志里哨兵按 CWD 相对路径查「✅ 前提在」，
+ * 而测试按 `../../` 查「仓不在盘上」，**同一个绝对路径，两个相反结论**。
+ * 哨兵量的和测试量的不是同一个东西。
+ *
+ * 所以 CI 用 `ZBT_CAPABILITY_DIR` 显式指定，测试和哨兵读同一个变量 ——
+ * 两者再也不可能对不上。本地不设该变量时仍走同级推导（本地是真同级）。
+ */
+const CAP_DIR = process.env.ZBT_CAPABILITY_DIR
+  || resolve(HERE, "../../z-biz-tool-capability");
+const RUST_LIB = resolve(CAP_DIR, "crates/cap-img/src/lib.rs");
 const TYPES_SRC = resolve(HERE, "../src/capability/types.ts");
 
 /**

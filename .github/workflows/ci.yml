@@ -21,18 +21,23 @@ jobs:
   check:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
+    env:
+      # 跨语言契约测试要读兄弟仓的 Rust 源码，路径**显式给**，不让测试自己 `../..` 去猜。
+      # 2026-10-04 实测：actions/checkout 只要有任一 step 带 path:，**第一个不带 path 的
+      # 也会被嵌进 $GITHUB_WORKSPACE/<仓名>**，于是测试的 `resolve(HERE,"../../…")`
+      # 落到 workspace 之外，而 checkout 的 path: 写不到那里。
+      # 那次 CI 里哨兵按 CWD 相对查「✅ 前提在」、测试按 ../../ 查「仓不在盘上」，
+      # **同一个绝对路径、两个相反结论** —— 哨兵量的和测试量的不是同一个东西。
+      # 现在哨兵与测试读同一个变量，两者不可能再对不上。
+      ZBT_CAPABILITY_DIR: ${{ github.workspace }}/z-biz-tool-capability
     steps:
       - uses: actions/checkout@v4
 
-      # 跨语言契约测试要读兄弟仓的 Rust 源码，2026-10-04 实测这条流水线此前**每次都跳过**它们：
-      # runner 上只有本仓，`capability 仓不在盘上` 恒成立，于是
-      # tests/capability-contract.test.ts 里那 3 条「TS 契约 ↔ Rust pub fn」交叉校验
-      # 在 CI 上是死的，而 npm test 照样退 0，job 照样报 success。
-      # 日志实证：# pass 12 / # fail 0 / # skipped 3 —— 跳过的恰好是这个文件里
-      # 最值钱的三条（该文件自己的注释：契约漂移是这类分层里最难发现的一类 bug）。
-      #
-      # 放在 $GITHUB_WORKSPACE/z-biz-tool-capability —— 正好是测试里
-      # `resolve(HERE, "../../z-biz-tool-capability/...")` 解析出来的那个位置，不改测试。
+      # 实测证据：在此之前这条流水线**每次都跳过**那 3 条交叉校验 ——
+      # runner 上只有本仓，`capability 仓不在盘上` 恒成立，而 npm test 照样退 0、
+      # job 照样报 success。日志实证：# pass 12 / # fail 0 / # skipped 3，
+      # 跳过的恰好是这个仓最值钱的三条（该文件的注释：契约漂移是这类分层里
+      # 最难发现的一类 bug —— 两边改名都不会编译报错，只在运行时炸）。
       - name: Checkout z-biz-tool-capability（跨语言契约测试要读它的 Rust 源码）
         uses: actions/checkout@v4
         with:
@@ -54,27 +59,19 @@ jobs:
       # 哨兵：上面那次 checkout 哪天被删掉/改了 path，测试会**静默恢复成跳过**，
       # CI 依然一片绿。所以这里先把前提钉死 —— 前提不成立就直接红，
       # 而不是让 3 条检查悄悄退化成 0 条。
+      #
+      # 必须用 ZBT_CAPABILITY_DIR（**和测试同一个变量**）。第一版这里写的是
+      # CWD 相对的 `z-biz-tool-capability/…`，于是哨兵报「✅ 前提在」而测试同时
+      # 报「仓不在盘上」，同一个绝对路径两个相反结论 —— 哨兵量的和测试量的
+      # 根本不是同一个东西，绿得毫无意义。
       - name: 哨兵：跨语言契约测试的前提必须在（否则那 3 条会静默跳过）
         run: |
           set -euo pipefail
-          echo "--- 诊断 ---"
-          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
-          echo "PWD=$(pwd)"
-          echo "工作区顶层:"; ls -1 "${GITHUB_WORKSPACE}" || true
-          echo "本仓 tests 实际位置:"; ls -d "${GITHUB_WORKSPACE}"/tests 2>/dev/null || echo "  (不在 workspace 根)"
-          echo "node 解析出的 RUST_LIB:"; node -e '
-            const {dirname,resolve}=require("node:path");
-            const {fileURLToPath}=require("node:url");
-            const HERE=dirname(fileURLToPath(process.argv[1]));
-            console.log("  HERE="+HERE);
-            console.log("  RUST_LIB="+resolve(HERE,"../../z-biz-tool-capability/crates/cap-img/src/lib.rs"));
-          ' "$(pwd)/tests/capability-contract.test.ts"
-          echo "--- 诊断结束 ---"
-          lib="z-biz-tool-capability/crates/cap-img/src/lib.rs"
+          lib="${ZBT_CAPABILITY_DIR}/crates/cap-img/src/lib.rs"
           if [ ! -f "${lib}" ]; then
             echo "❌ ${lib} 不在工作区里 —— capability-contract.test.ts 的 3 条交叉校验会全部跳过"
             echo "   （node:test 把 skip 记为 ok，npm test 仍退 0，job 仍报绿）"
-            echo "   查上面那次 actions/checkout 的 repository / path。"
+            echo "   查上面那次 actions/checkout 的 repository / path，以及 job 级 env 里的 ZBT_CAPABILITY_DIR。"
             exit 1
           fi
           echo "✅ 跨语言契约测试的前提在：${lib}"
