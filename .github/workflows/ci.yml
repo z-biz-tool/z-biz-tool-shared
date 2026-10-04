@@ -57,6 +57,19 @@ jobs:
       - name: 哨兵：跨语言契约测试的前提必须在（否则那 3 条会静默跳过）
         run: |
           set -euo pipefail
+          echo "--- 诊断 ---"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "PWD=$(pwd)"
+          echo "工作区顶层:"; ls -1 "${GITHUB_WORKSPACE}" || true
+          echo "本仓 tests 实际位置:"; ls -d "${GITHUB_WORKSPACE}"/tests 2>/dev/null || echo "  (不在 workspace 根)"
+          echo "node 解析出的 RUST_LIB:"; node -e '
+            const {dirname,resolve}=require("node:path");
+            const {fileURLToPath}=require("node:url");
+            const HERE=dirname(fileURLToPath(process.argv[1]));
+            console.log("  HERE="+HERE);
+            console.log("  RUST_LIB="+resolve(HERE,"../../z-biz-tool-capability/crates/cap-img/src/lib.rs"));
+          ' "$(pwd)/tests/capability-contract.test.ts"
+          echo "--- 诊断结束 ---"
           lib="z-biz-tool-capability/crates/cap-img/src/lib.rs"
           if [ ! -f "${lib}" ]; then
             echo "❌ ${lib} 不在工作区里 —— capability-contract.test.ts 的 3 条交叉校验会全部跳过"
