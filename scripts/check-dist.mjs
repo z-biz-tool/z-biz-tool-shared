@@ -2,8 +2,11 @@
 // 0.1.1 就是靠 tsc 增量状态跳过 emit，把只有 tsbuildinfo 的空 dist 发上了 npm。
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(dirname(new URL(import.meta.url).pathname), '..');
+// 必须用 fileURLToPath：URL.pathname 在 Windows 上带前导斜杠（"/D:/x"），
+// resolve() 会把它拼成 "D:\D:\x" 并 ENOENT —— 闸门自己崩掉，等于没有闸门。
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
 const missing = [];
