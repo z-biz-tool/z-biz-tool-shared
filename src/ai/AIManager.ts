@@ -1,135 +1,40 @@
 import { create } from 'zustand';
-import { AIConfig, AIFunctionType, AIFunctionParams, AIResult, AIContext, Agent } from './types';
+// 必须是 `import type`：AIConfig 等全是纯类型。
+// 写成普通 import 时，tsc 会按「只用于类型」自动擦除，所以编译一直是好的；
+// 但 node --experimental-strip-types 是**仅擦除、不做类型分析**，擦不掉这条语句，
+// 于是运行期真去 ./types 找一个只存在于编译期的导出并抛
+// 「does not provide an export named 'AIConfig'」。
+import type { AIConfig, AIFunctionType, AIFunctionParams, AIResult, AIContext, Agent } from './types';
+import { createClient, type AIClient, type FetchLike } from './clients';
 
-// AI 客户端接口
-interface AIClient {
-  chat(prompt: string, context?: AIContext): Promise<AIResult>;
-  execute(functionType: AIFunctionType, params: AIFunctionParams, context?: AIContext): Promise<AIResult>;
-  getModels(): Promise<string[]>;
-  validateConfig(): boolean;
-}
+// 客户端实现见 ./clients.ts：
+//   - provider 工厂此前对 claude/gemini/ollama/local 全部落进 default 分支
+//     返回 OpenAIClient（01 A-11）—— 现在每个 provider 有自己的协议实现；
+//   - AIConfig.timeout 此前声明了却从不生效（01 A-10）—— 现在走 AbortController。
+export type { AIClient, FetchLike } from './clients';
 
-// 实现 AI 客户端
-class OpenAIClient implements AIClient {
-  private config: AIConfig;
+/**
+ * 可注入的 fetch 实现。
+ *
+ * 默认 undefined = 用真实 fetch。设置它（而不是在测试里猴补 globalThis.fetch）
+ * 有两个好处：
+ *   1. 测试不碰全局状态，别的测试文件不受影响；
+ *   2. 下游若在 Node 侧跑（Tauri 后端 / 脚本），可以塞一个带代理、
+ *      带重试、带埋点的实现进来。
+ */
+let fetchOverride: FetchLike | undefined;
 
-  constructor(config: AIConfig) {
-    this.config = config;
-  }
-
-  async chat(prompt: string, context?: AIContext): Promise<AIResult> {
-    try {
-      const messages = [
-        { role: 'system', content: this.buildSystemPrompt(context) },
-        { role: 'user', content: prompt }
-      ];
-
-      const startTime = Date.now();
-      const response = await fetch(`${this.config.baseUrl || 'https://api.openai.com/v1'}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`
-        },
-        body: JSON.stringify({
-          model: this.config.modelName,
-          messages,
-          temperature: this.config.temperature,
-          max_tokens: this.config.maxTokens
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const latency = Date.now() - startTime;
-
-      return {
-        success: true,
-        content: data.choices[0].message.content,
-        metadata: {
-          model: this.config.modelName,
-          tokensUsed: data.usage.total_tokens,
-          latency
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        content: '',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  async execute(functionType: AIFunctionType, params: AIFunctionParams, context?: AIContext): Promise<AIResult> {
-    // 根据功能类型构建不同的 prompt
-    const prompt = this.buildPrompt(functionType, params, context);
-    return this.chat(prompt, context);
-  }
-
-  async getModels(): Promise<string[]> {
-    try {
-      const response = await fetch(`${this.config.baseUrl || 'https://api.openai.com/v1'}/models`, {
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return data.data.map((m: any) => m.id);
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
-      return [];
-    }
-  }
-
-  validateConfig(): boolean {
-    return !!this.config.apiKey && !!this.config.modelName;
-  }
-
-  private buildSystemPrompt(context?: AIContext): string {
-    let prompt = 'You are a helpful assistant.';
-    
-    if (context?.knowledgeBase?.length) {
-      prompt += '\n\nContext from knowledge base:\n' + context.knowledgeBase.join('\n');
-    }
-    
-    if (context?.currentLanguage) {
-      prompt += `\n\nCurrent programming language: ${context.currentLanguage}`;
-    }
-
-    return prompt;
-  }
-
-  private buildPrompt(functionType: AIFunctionType, params: AIFunctionParams, _context?: AIContext): string {
-    switch (functionType) {
-      case 'explain':
-        return `Please explain this command or code:\n\n${params.text}`;
-      case 'analyze':
-        return `Please analyze this error and provide a solution:\n\n${params.text}`;
-      case 'code':
-        return `Please refactor or improve this code:\n\n${params.code}`;
-      case 'summarize':
-        return `Please summarize this content:\n\n${params.text}`;
-      case 'classify':
-        return `Please classify this content:\n\n${params.text}`;
-      case 'git-commit':
-        return `Please generate a git commit message for this diff:\n\n${params.diff}`;
-      default:
-        return `${params.prompt || ''}`;
-    }
-  }
+/** 设置/清除 fetch 实现；传 undefined 恢复真实 fetch。返回一个还原函数。 */
+export function setFetchImplementation(impl: FetchLike | undefined): () => void {
+  const previous = fetchOverride;
+  fetchOverride = impl;
+  return () => {
+    fetchOverride = previous;
+  };
 }
 
 // AI 管理器状态
-interface AIStore {
+export interface AIStore {
   config: AIConfig;
   context: AIContext;
   agents: Agent[];
@@ -156,29 +61,30 @@ export const useAIManager = create<AIStore>((set, get) => ({
   agents: [],
 
   setConfig: (config) => set({ config }),
+
   updateConfig: (config) => set((state) => ({ config: { ...state.config, ...config } })),
-  
+
   setContext: (context) => set({ context }),
-  
+
   addAgent: (agent) => set((state) => ({
     agents: [...state.agents, agent]
   })),
-  
+
   removeAgent: (agentId) => set((state) => ({
     agents: state.agents.filter(a => a.id !== agentId)
   })),
 
   getModels: async () => {
     const { config } = get();
-    const client = createClient(config);
+    const client = createClient(config, fetchOverride);
     return client.getModels();
   },
 
   executeAI: async (functionType, params) => {
     const { config, context } = get();
-    const client = createClient(config);
-    
+
     try {
+      const client = createClient(config, fetchOverride);
       const result = await client.execute(functionType, params || {}, context);
       return result;
     } catch (error) {
@@ -191,9 +97,9 @@ export const useAIManager = create<AIStore>((set, get) => ({
   },
 
   executeWithAgent: async (agentId, functionType, params) => {
-    const { agents, context } = get();
+    const { agents, context, config } = get();
     const agent = agents.find(a => a.id === agentId);
-    
+
     if (!agent) {
       return {
         success: false,
@@ -202,16 +108,21 @@ export const useAIManager = create<AIStore>((set, get) => ({
       };
     }
 
-    // 使用特定 Agent 的模型
+    // 使用特定 Agent 的模型。
+    //
+    // 此前这里把 provider 硬编码成 'local'，但客户端工厂对 'local' 也落进
+    // default 分支返回 OpenAIClient —— 于是"用 Agent 自己的模型"实际是
+    // "用 OpenAI 的端点 + Agent 的模型名"，模型多半对不上，必然失败。
+    //
+    // 现在 provider 沿用全局配置（Agent 类型里也没有 provider 字段），
+    // 只覆盖 modelName —— 这才是"用特定 Agent 的模型"的字面含义。
     const agentConfig: AIConfig = {
-      ...get().config,
-      modelName: agent.model,
-      provider: 'local' // 假设 Agent 使用本地模型
+      ...config,
+      modelName: agent.model || config.modelName
     };
 
-    const client = createClient(agentConfig);
-    
     try {
+      const client = createClient(agentConfig, fetchOverride);
       const result = await client.execute(functionType, params || {}, context);
       return result;
     } catch (error) {
@@ -223,14 +134,3 @@ export const useAIManager = create<AIStore>((set, get) => ({
     }
   }
 }));
-
-// 创建 AI 客户端工厂
-function createClient(config: AIConfig): AIClient {
-  switch (config.provider) {
-    case 'openai':
-      return new OpenAIClient(config);
-    // 可以扩展更多提供商
-    default:
-      return new OpenAIClient(config);
-  }
-}

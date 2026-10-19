@@ -30,7 +30,7 @@
 
 **AI 管理器**
 - ✅ 统一 AI 配置管理
-- ✅ 多提供商支持 (OpenAI/Claude/Gemini/Ollama)
+- ✅ 多提供商支持 (OpenAI/Claude/Gemini/Ollama/local) —— 2026-10-20 起各 provider 走各自协议，此前全部落进 OpenAI 分支（01 A-11）
 - ✅ 多种功能类型支持 (14 种)
 - ✅ 上下文管理
 - ✅ Agent 管理
@@ -89,28 +89,29 @@
 - ✅ 自定义时长
 - ✅ 自动消失
 
-### 6. terminal 集成 ✅
+### 6. terminal 集成 ❌ **未完成（2026-10-20 复核订正）**
 
-**改造内容**
-- ✅ 替换 `useAIStore` 为 `useAIManager`
-- ✅ 统一配置管理
-- ✅ 保持向后兼容性
-- ✅ 配置同步机制
+> 原文此处标 "✅"，声称已把 `useAIStore` 替换为 `useAIManager`。
+> **实测为零引用**：`grep -rn "useAIManager" z-biz-tool-terminal/src/` 无任何命中；
+> `z-biz-tool-terminal/src/stores/aiStore.ts` 仍在原样，未接入共享库。
+> 原文提到的 `src/services/unifiedAIClient.ts` **文件根本不存在**。
+>
+> terminal 侧确实有自己的 AI 类型（`src/types/ai.ts`），其注释写着
+> "共享包的 AIConfig 只有 modelName，缺少 apiKey 等字段，因此由终端侧持有,
+> 不从 z-biz-tool-shared 复用" —— **这是终端侧自己的选择，不是"已集成"**。
 
-**文件修改**
-- `z-biz-tool-terminal/src/stores/aiStore.ts` - 重构为使用统一 AI 中台
-- `z-biz-tool-terminal/src/types/ai.ts` - 更新类型定义
-- `z-biz-tool-terminal/src/services/unifiedAIClient.ts` - 新建兼容层
+**当前状态**：未集成。terminal 保留自己的 `aiStore` 与 AI 类型。
+接入共享库是 05 台账 T4.3 的待办项。
 
-### 7. aigen 集成 ✅
+### 7. aigen 集成 ❌ **未完成（2026-10-20 复核订正）**
 
-**改造内容**
-- ✅ 重构 `useAIGenStore`
-- ✅ 统一 AI 配置管理
-- ✅ 图像/文本/视频/PPT 生成功能集成
+> 原文此处标 "✅"，声称已重构 `useAIGenStore` 并集成图像/文本/视频/PPT 生成。
+> **实测为零引用**：`grep -rn "useAIManager\|z-biz-tool-shared" z-biz-tool-aigen/src/`
+> 无任何命中。`z-biz-tool-aigen/src/stores/aiStore.ts` 仍在原样。
+> 共享库也**没有**图像/视频/PPT 生成能力（`AIFunctionType` 里有这些类型，
+> 但 `clients.ts` 的实现只处理文本类 prompt 模板）。
 
-**文件修改**
-- `z-biz-tool-aigen/src/stores/aiStore.ts` - 重构为使用统一 AI 中台
+**当前状态**：未集成。接入共享库是 05 台账 T4.3 的待办项。
 
 ### 8. 示例和文档 ✅
 
@@ -223,20 +224,28 @@
 
 ## 测试
 
-### 功能测试
+> **2026-10-20 复核订正**：本节原文的 "✅" 全部作废 ——
+> 写这份文档时，仓里**一个测试文件都没有**（01 A-6）。
+> 下面列的是**当前真实存在**的测试与它们实际覆盖的东西。
 
-- ✅ AI 中台基本功能
-- ✅ 主题切换
-- ✅ 快捷键注册和冲突检测
-- ✅ 通知显示
-- ✅ terminal AI 功能
-- ✅ aigen AI 功能
+### 当前测试（`tests/`，运行器 `node --test`）
 
-### 兼容性测试
+| 文件 | 覆盖 | 对应 06 验收项 |
+|---|---|---|
+| `tests/ai-clients.test.ts` | provider 分支、超时、配置合并、错误归一 | UT-AI-01 / UT-AI-02 / UT-AI-03 |
+| `tests/notifications.test.ts` | toast id 唯一性、duration 默认值、自动移除、定时器清理 | UT-NOTIF-01 |
+| `tests/theme-mode.test.ts` | 偏好解析、存储读写、键迁移、toggle 语义 | UT-THEME-01 / UT-THEME-02 |
+| `tests/shortcut-manager.test.ts` | 快捷键注册、冲突检测、修饰键归一化 | UT-SHORTCUT-01 |
+| `tests/design-tokens.test.ts` | 设计令牌取值 | UT-TOKEN-01（部分） |
+| `tests/interaction-patterns.test.ts` | 交互模式 | — |
+| `tests/capability-contract.test.ts` | cap-img 跨语言命令契约（Rust ↔ TS） | — |
 
-- ✅ 类型定义兼容
-- ✅ API 兼容
-- ✅ 配置兼容
+### 尚未覆盖
+
+- ❌ React 组件渲染测试（IT-AGENT-01 / IT-THEME-01 / IT-TOAST-01 / IT-THEMESEL-01）——
+  仓里没有 jsdom / testing-library，且本轮不引入新依赖。
+- ❌ terminal / aigen 集成测试 —— 因为**根本没集成**。
+- ❌ 下游回归矩阵（REG-*）—— 需要 CI 与真实下游构建。
 
 ## 后续计划
 

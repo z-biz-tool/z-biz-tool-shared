@@ -1,131 +1,159 @@
 # z-biz-tool 核心库集成指南
 
-## 📦 已完成的功能
+> **本指南的每条 API 都对着源码核过。**
+>
+> 2026-10-20 重写：上一版宣称的 `AIManager` class、`AIManagerProvider`、
+> `useAIContext()`、`generateText`/`generateCode`/`translate` 等 API
+> **在 `src/` 里根本不存在**（01 A-6）。下游照着写必然踩空。
+> 现在本指南里的每个符号都能在对应子路径的 `index.ts` 里找到。
 
-### 1. 统一 AI 中台
-- ✅ AIManager - 统一的 AI 服务管理
-- ✅ 支持 14 种功能类型
-- ✅ 配置驱动，快速扩展
+## 📦 包结构
 
-### 2. 统一主题系统
-- ✅ 10 种预设主题（Dark/Light/Dracula/Nord/Drift/Midnight 等）
-- ✅ 实时主题切换
-- ✅ 主题配置同步
+`z-biz-tool-shared` 是 z-biz-tool 系列应用的跨项目共享库。按**子路径**导出，
+按需引入，避免把整个库（含 antd）打进不需要它的包里：
 
-### 3. 统一快捷键系统
-- ✅ 全局快捷键注册中心
-- ✅ 自动冲突检测
-- ✅ 统一的快捷键显示组件
+| 子路径 | 内容 | 主要导出 |
+|---|---|---|
+| `z-biz-tool-shared` | 根入口 | 各子路径的聚合（`export *` + 少量显式白名单） |
+| `z-biz-tool-shared/ai` | AI 中台 | `useAIManager`、`contextManager`、`AIConfig` 等类型 |
+| `z-biz-tool-shared/agent` | Agent 组件 | `AgentPanel`、`useAgentStore`、`SQLEditor` 等 |
+| `z-biz-tool-shared/theme` | 主题系统 | `useThemeStore`、`useTheme`、`initTheme` |
+| `z-biz-tool-shared/shortcuts` | 快捷键 | `shortcutManager`、`useShortcutStore` |
+| `z-biz-tool-shared/notifications` | 通知 | `toastManager`、`useNotificationStore`、`ToastContainer` |
+| `z-biz-tool-shared/components` | UI 组件 | `Spotlight`、`useSpotlight`、`Navbar`、`UIDesignSystem` 等 |
+| `z-biz-tool-shared/interactions` | 交互模式 | `interactionPatterns` |
+| `z-biz-tool-shared/styles` | 设计令牌 | `designTokens` 相关导出 |
+| `z-biz-tool-shared/shared` | 布局/工具组件 | `AppShell`、`Omnibar`、`ThemeToggle`、`ThemeSelector` 等 |
+| `z-biz-tool-shared/capability` | 跨端命令契约 | `ImageInfo`、`CapImgCommands` 等类型 |
 
-### 4. 统一通知系统
-- ✅ Toast 通知
-- ✅ 多种通知类型（success/error/warning/info）
-- ✅ 自定义时长
-
-### 5. 优化交互
-- ✅ Spotlight 命令面板
-- ✅ 全局快捷键处理
-- ✅ 导航栏和侧边栏组件
-
-### 6. UI 设计系统
-- ✅ Button 组件（支持 4 种变体）
-- ✅ Input/Textarea 组件
-- ✅ Card 组件
-- ✅ Badge 组件
-- ✅ Divider 组件
-- ✅ Modal 组件
-- ✅ Icon 组件（15 种图标）
-- ✅ EmptyState 组件
-- ✅ LoadingSpinner 组件
-- ✅ Skeleton 组件
+> `react` / `antd` / `zustand` / `@ant-design/icons` 是 **peerDependencies** ——
+> 由宿主应用提供，避免下游打进两份 React 实例。
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 1. 安装
 
 ```bash
-cd z-biz-tool-shared
-npm install
+npm install z-biz-tool-shared
 ```
 
-### 2. 导入模块
+### 2. 按需导入
 
 ```typescript
-import {
-  AIManager,
-  ThemeProvider,
-  ThemeContext,
-  ShortcutManager,
-  NotificationManager,
-  Spotlight,
-  SpotlightProvider,
-  GlobalShortcutHandler,
-  useSpotlight,
-  Navbar,
-  Sidebar,
-  Button,
-  Card,
-  Icon,
-  EmptyState,
-  LoadingSpinner,
-  Skeleton,
-  DESIGN_TOKENS
-} from 'z-biz-tool-shared';
+// 推荐：走子路径，只引入用得上的部分
+import { useAIManager } from 'z-biz-tool-shared/ai';
+import { toastManager } from 'z-biz-tool-shared/notifications';
+import { useTheme } from 'z-biz-tool-shared/theme';
 ```
+
+也可以从根入口导入，但根入口是聚合面，**打包体积不会因此变小**。
 
 ## 📚 使用示例
 
-### AI 中台使用
+### AI 中台
+
+`useAIManager` 是一个 zustand store。**没有 class、没有 Provider、没有 Context hook** ——
+上一版文档里的 `new AIManager(...)` / `<AIManagerProvider>` / `useAIContext()` 都不存在。
 
 ```typescript
-import { AIManager, AIManagerProvider } from 'z-biz-tool-shared';
+import { useAIManager } from 'z-biz-tool-shared/ai';
 
-// 配置 AI 模型
-const aiManager = new AIManager({
-  apiKey: 'your-api-key',
-  models: {
-    gpt4: 'gpt-4',
-    claude3: 'claude-3-opus-20240229'
-  }
-});
+function AIButton() {
+  // 配置。apiKey 只在运行时注入，不要硬编码进代码
+  useAIManager.getState().updateConfig({
+    provider: 'openai',
+    modelName: 'gpt-4o-mini',
+    apiKey: '<YOUR_API_KEY>',   // 从 Tauri keychain / 环境变量取
+    timeout: 30000,             // 毫秒；<= 0 表示不设上限
+  });
 
-// 在应用中使用
-<AIManagerProvider manager={aiManager}>
-  <YourApp />
-</AIManagerProvider>
+  const handleClick = async () => {
+    const result = await useAIManager.getState().executeAI('chat', {
+      prompt: '帮我写一个 hello world 程序',
+    });
 
-// 在组件中使用 AI 功能
-const { generateText, generateCode, translate } = useAIContext();
+    if (result.success) {
+      console.log(result.content);
+    } else {
+      console.error(result.error);   // 失败是返回值，不是抛异常
+    }
+  };
 
-const result = await generateText({
-  prompt: '帮我写一个 hello world 程序',
-  model: 'gpt4'
-});
+  return <button onClick={handleClick}>生成</button>;
+}
 ```
 
-### 主题系统使用
+#### provider 支持情况
+
+每个 provider 走**自己的协议**（不再是"除 openai 外全部落进 OpenAI"）：
+
+| provider | 协议 | 默认 baseUrl | apiKey |
+|---|---|---|---|
+| `openai` | OpenAI `/chat/completions` | `https://api.openai.com/v1` | 必填 |
+| `claude` | Anthropic Messages API | `https://api.anthropic.com/v1` | 必填 |
+| `gemini` | Google `generateContent` | `https://generativelanguage.googleapis.com/v1beta` | 必填 |
+| `ollama` | OpenAI 兼容 | `http://localhost:11434/v1` | 可选 |
+| `local` | OpenAI 兼容 | **无默认** —— 必须显式给 `baseUrl` | 可选 |
+
+- 传了 `baseUrl` 就覆盖默认值。
+- `provider: 'local'` 不猜本地服务地址：没给 `baseUrl` 时会**明确报错**而不是打到一个不存在的端口。
+- 未知的 provider 值**明确报错**，不静默回落成 OpenAI。
+
+#### 超时
+
+`AIConfig.timeout` 真的会生效（毫秒，默认 30000）。超时会被转成
+`AIResult.success === false`，`error` 形如 `请求超时（30000ms）`。
+
+#### 在 Node 侧换掉 fetch
 
 ```typescript
-import { ThemeProvider, useTheme } from 'z-biz-tool-shared';
+import { setFetchImplementation } from 'z-biz-tool-shared/ai';
 
-// 在应用顶层包裹
-<ThemeProvider initialTheme="dark">
-  <YourApp />
-</ThemeProvider>
-
-// 在组件中使用主题
-const { themeColors, themeName, setTheme } = useTheme();
-
-// 切换主题
-setTheme('light');
+const restore = setFetchImplementation(myProxyFetch);   // 返回还原函数
 ```
 
-### 快捷键系统使用
+这是给测试与 Tauri 后端准备的注入口 —— 测试因此不必去猴补 `globalThis.fetch`。
+
+### 主题系统
+
+库里有**两套主题**，各有各的用途，按需选：
+
+**① 十主题预设**（`src/theme/themeManager.ts`）—— 适合需要具体配色表的场合：
 
 ```typescript
-import { shortcutManager, useShortcut } from 'z-biz-tool-shared';
+import { useThemeStore, initTheme } from 'z-biz-tool-shared/theme';
 
-// 注册快捷键
+initTheme();   // 应用启动时调一次：读存储 → 校验 → 应用
+
+const { currentTheme, themeConfig, setTheme, getThemeColors } = useThemeStore();
+setTheme('dracula');
+```
+
+**② 明暗两态 + 跟随系统**（`src/shared/ThemeContext.tsx`）—— 适合常规应用：
+
+```typescript
+import { ThemeProvider, useTheme } from 'z-biz-tool-shared/shared';
+
+<ThemeProvider>
+  <YourApp />
+</ThemeProvider>;
+
+// 组件内
+const { mode, preference, toggle, setPreference } = useTheme();
+// mode: 'light' | 'dark'    —— 实际生效的模式
+// preference: 'system' | 'light' | 'dark' —— 用户的偏好
+setPreference('system');   // 回到跟随系统
+```
+
+> ⚠️ `useTheme` 在 `theme` 与 `shared` 两个子路径下**都存在**，但语义不同
+> （前者是十主题 store，后者是明暗 context）。**从根入口导入时拿到的是
+> `theme` 那一个** —— 需要明暗两态时请从 `z-biz-tool-shared/shared` 显式导入。
+
+### 快捷键
+
+```typescript
+import { shortcutManager } from 'z-biz-tool-shared/shortcuts';
+
 shortcutManager.register('editor', 'save', {
   description: '保存当前文件',
   category: '编辑器',
@@ -133,309 +161,192 @@ shortcutManager.register('editor', 'save', {
   enabled: true
 });
 
-// 在组件中使用快捷键 Hook
-const { register, unregister } = useGlobalShortcut();
-
-useShortcut(['Cmd', 'S'], () => {
-  console.log('保存');
-});
-
-// 删除快捷键
 shortcutManager.unregister('editor', 'save');
 ```
 
-### 通知系统使用
+同一组合键被注册两次时，`register` 返回 `false` 并在控制台报冲突。
+匹配时**修饰键会做归一化**（Ctrl ≡ ⌘），所以 `Cmd+S` 与 `Ctrl+S` 视为同一个键。
+
+### 通知
 
 ```typescript
-import { toastManager } from 'z-biz-tool-shared';
+import { toastManager } from 'z-biz-tool-shared/notifications';
 
-// 显示不同类型的 Toast
 toastManager.success('操作成功！');
 toastManager.error('操作失败！');
 toastManager.warning('警告信息');
 toastManager.info('提示信息');
 
-// 自定义 Toast
-toastManager.show('自定义消息', {
-  type: 'success',
-  duration: 3000,
-  position: 'bottom-right'
-});
+// 自定义时长
+toastManager.info('会显示 5 秒', 5000);
+
+const id = toastManager.info('手动关闭');
+toastManager.remove(id);
+toastManager.clear();
 ```
+
+- 每次调用的 id **保证互不相同**（自增计数器）—— 不会出现一个 `remove` 干掉两条 toast。
+- 不传 `duration` 时默认 3000ms；传 `0` 表示不自动消失。
+- `toastManager` 只有 `success`/`error`/`warning`/`info`/`remove`/`clear`
+  六个方法，**没有 `show()`**（上一版文档里的 `show` 不存在）。
 
 ### Spotlight 命令面板
 
 ```typescript
-import { Spotlight, SpotlightProvider, useSpotlight } from 'z-biz-tool-shared';
+import { Spotlight, SpotlightProvider, useSpotlight } from 'z-biz-tool-shared/components';
 
-// 在应用中使用
 const spotlight = useSpotlight();
 
 <SpotlightProvider>
   <YourApp />
-  <Spotlight 
-    isOpen={spotlight.isOpen} 
-    onClose={spotlight.closeSpotlight} 
+  <Spotlight
+    isOpen={spotlight.isOpen}
+    onClose={spotlight.closeSpotlight}
   />
 </SpotlightProvider>
-
-// 快捷键打开
-// Cmd+Shift+Space 或 Ctrl+Shift+Space
 ```
 
-### UI 组件使用
+### UI 组件
+
+`z-biz-tool-shared/components` 里的 `UIDesignSystem` 提供了一套**不依赖 antd** 的轻量组件：
 
 ```typescript
-import { 
-  Button, 
-  Card, 
-  Icon, 
-  EmptyState, 
-  LoadingSpinner,
-  Modal 
-} from 'z-biz-tool-shared';
-
-// 按钮
-<Button 
-  variant="primary" 
-  onClick={() => console.log('点击')}
-  icon={<Icon name="check" />}
->
-  主要按钮
-</Button>
-
-// 卡片
-<Card title="标题" footer={<Button>操作</Button>}>
-  <p>内容</p>
-</Card>
-
-// 空状态
-<EmptyState 
-  title="暂无数据" 
-  description="点击按钮添加内容"
-  action={<Button>添加</Button>}
-/>
-
-// 加载状态
-<LoadingSpinner size="md" />
-
-// 骨架屏
-<Skeleton width="100%" height="100px" />
-
-// 模态框
-<Modal 
-  isOpen={isOpen} 
-  onClose={() => setIsOpen(false)}
-  title="标题"
->
-  <p>内容</p>
-</Modal>
+import {
+  Button, Input, Textarea, Card, Badge, Divider,
+  Modal, Icon, EmptyState, LoadingSpinner, Skeleton
+} from 'z-biz-tool-shared/components';
 ```
 
-### 设计令牌使用
+`EmptyState` / `LoadingState` / `ErrorState` 另有 `shared` 子路径版本（`src/shared/States.tsx`），
+两者**同名但不同源** —— 根入口只导出 `shared` 那一份（见 `src/index.ts` 的显式白名单）。
+
+### 设计令牌
 
 ```typescript
-import { DESIGN_TOKENS } from 'z-biz-tool-shared';
-
-// 使用设计令牌
-const { borderRadius, spacing, fontSize } = DESIGN_TOKENS;
-
-// 在样式中使用
-const styles = {
-  padding: spacing.md,
-  borderRadius: borderRadius.lg,
-  fontSize: fontSize.base
-};
+import { radius, shadow, size, motion, gradient } from 'z-biz-tool-shared/shared';
 ```
+
+> 库内目前仍有**三套**令牌（`src/styles/designTokens.ts` 的 `COLORS`/`SPACING` 大写风格、
+> `src/shared/designTokens.ts` 的小写风格、`UIDesignSystem` 的 `DESIGN_TOKENS`），
+> 归一工作尚未完成（05 台账 T3.2）。**新代码请用 `shared` 子路径的小写那套**，
+> 它是根入口显式导出的那一份。
 
 ## 🎨 主题预设
 
-| 主题名 | 描述 |
-|--------|------|
-| dark | 经典深色主题 |
-| light | 经典浅色主题 |
-| dracula | Dracula 主题 |
-| nord | Nord 主题 |
-| drift | Drift 主题 |
-| midnight | 午夜蓝主题 |
-| sunrise | 日出橙主题 |
-| forest | 森林绿主题 |
-| ocean | 海洋蓝主题 |
-| sunset | 日落紫主题 |
+`src/theme/themeManager.ts` 内置 10 个主题：
 
-## 🔌 集成到现有项目
+`dark`、`light`、`dracula`、`solarized`、`tokyoNight`、`nord`、`oneDark`、
+`monokai`、`ayu`、`gruvbox`
 
-### 1. 在 terminal 中集成
+> 上一版文档列的是 `drift`/`midnight`/`sunrise`/`forest`/`ocean`/`sunset` ——
+> **这六个在源码里不存在**，用 `setTheme('drift')` 会得到一份 `undefined` 配色。
 
-```typescript
-// src/features/terminal/Terminal.tsx
-import {
-  AIManager,
-  ThemeProvider,
-  ThemeContext,
-  useTheme,
-  toastManager,
-  SpotlightProvider,
-  useSpotlight,
-  Navbar,
-  Sidebar
-} from 'z-biz-tool-shared';
+## 📖 API 速查
 
-function Terminal() {
-  const { themeColors } = useTheme();
-  const spotlight = useSpotlight();
+### useAIManager（`z-biz-tool-shared/ai`）
 
-  return (
-    <div style={{ backgroundColor: themeColors.background }}>
-      <Navbar 
-        title="终端" 
-        actions={[<Button key="1">AI</Button>]}
-      />
-      
-      <div style={{ display: 'flex' }}>
-        <Sidebar items={[]} />
-        <div style={{ flex: 1, padding: '20px' }}>
-          {/* 终端内容 */}
-        </div>
-      </div>
-      
-      <Spotlight 
-        isOpen={spotlight.isOpen} 
-        onClose={spotlight.closeSpotlight} 
-      />
-    </div>
-  );
-}
-```
+| 成员 | 说明 |
+|---|---|
+| `config: AIConfig` | 当前配置（`provider`/`modelName`/`apiKey`/`baseUrl`/`temperature`/`maxTokens`/`timeout`） |
+| `context: AIContext` | 上下文（`files`/`knowledgeBase`/`history`/`currentLanguage` 等） |
+| `agents: Agent[]` | 已注册的 Agent |
+| `setConfig(config)` | **整体替换**配置 |
+| `updateConfig(partial)` | 合并更新（只覆盖传入的字段） |
+| `setContext(context)` | 整体替换上下文 |
+| `addAgent(agent)` / `removeAgent(id)` | Agent 增删 |
+| `executeAI(type, params?)` | 执行一次 AI 调用 → `Promise<AIResult>` |
+| `executeWithAgent(agentId, type, params?)` | 用指定 Agent 的模型执行 |
+| `getModels()` | 拉取可用模型列表 |
 
-### 2. 在 aigen 中集成
+`AIFunctionType` 支持：`chat` / `explain` / `analyze` / `generate` / `code` /
+`git-commit` / `image` / `video` / `ppt` / `natural-language` / `classify` /
+`summarize` / `health-check` / `auto-fix`。
 
-```typescript
-// src/features/aigen/AIGen.tsx
-import {
-  AIManager,
-  ThemeProvider,
-  ThemeContext,
-  useTheme,
-  useAIContext,
-  toastManager
-} from 'z-biz-tool-shared';
+> 只有一部分类型会走内置 prompt 模板（`explain`/`analyze`/`code`/`summarize`/
+> `classify`/`git-commit`），其余类型直接把 `params.prompt` 发出去。
 
-function AIGen() {
-  const { themeColors } = useTheme();
-  const { generateText, generateCode } = useAIContext();
+### useThemeStore（`z-biz-tool-shared/theme`）
 
-  const handleGenerate = async () => {
-    const result = await generateText({
-      prompt: '生成一段代码',
-      model: 'gpt4'
-    });
-    toastManager.success('生成完成');
-  };
+| 成员 | 说明 |
+|---|---|
+| `currentTheme: ThemeName` | 当前主题名 |
+| `themeConfig: ThemeConfig` | 当前主题的完整配置 |
+| `setTheme(name)` | 切换主题并写入存储 |
+| `updateTheme(partial)` | **深合并**更新配置（colors 是嵌套对象，逐字段合并） |
+| `getThemeColors()` | 取当前配色 |
 
-  return (
-    <div style={{ backgroundColor: themeColors.background }}>
-      <Button onClick={handleGenerate}>生成代码</Button>
-    </div>
-  );
-}
-```
+### shortcutManager（`z-biz-tool-shared/shortcuts`）
 
-## 📖 API 文档
+| 方法 | 说明 |
+|---|---|
+| `register(category, id, config)` | 注册；冲突时返回 `false` |
+| `unregister(category, id)` | 注销 |
+| `getAll()` | 全部已注册快捷键 |
+| `hasConflict(key)` | 检查某组合键是否已被占用 |
 
-### AIManager
+### toastManager（`z-biz-tool-shared/notifications`）
 
-| 方法 | 说明 | 参数 |
-|------|------|------|
-| `generateText` | 生成文本 | `{ prompt: string; model?: string }` |
-| `generateCode` | 生成代码 | `{ prompt: string; language: string; model?: string }` |
-| `translate` | 翻译 | `{ text: string; targetLang: string }` |
-| `summarize` | 摘要 | `{ text: string }` |
-| `optimize` | 优化 | `{ text: string; type: 'grammar' \| 'style' }` |
-| `explain` | 解释 | `{ text: string }` |
-| `review` | 代码审查 | `{ code: string; language: string }` |
+| 方法 | 说明 |
+|---|---|
+| `success(message, duration?)` | 成功通知 |
+| `error(message, duration?)` | 错误通知 |
+| `warning(message, duration?)` | 警告通知 |
+| `info(message, duration?)` | 信息通知 |
+| `remove(id)` | 移除指定 toast |
+| `clear()` | 清空全部 toast |
 
-### ThemeContext
+## 🔑 凭据与安全
 
-| 属性 | 说明 |
-|------|------|
-| `themeColors` | 当前主题的颜色配置 |
-| `themeName` | 当前主题名称 |
-| `setTheme` | 设置主题 |
+- `apiKey` **只允许运行时注入**（`updateConfig`），来源应是 Tauri 侧的安全存储
+  或环境变量。**不要写进代码、不要提交进仓库。**
+- 库内没有任何一处 `console.*` 会打印 `config` 或 `apiKey`。
+- 文档示例里的 `<YOUR_API_KEY>` 是占位符，不是可用凭据。
 
-### ShortcutManager
-
-| 方法 | 说明 | 参数 |
-|------|------|------|
-| `register` | 注册快捷键 | `category: string, id: string, config: ShortcutConfig` |
-| `unregister` | 注销快捷键 | `category: string, id: string` |
-| `getAll` | 获取所有快捷键 | 无参数 |
-| `hasConflict` | 检查冲突 | `key: string` |
-
-### ToastManager
-
-| 方法 | 说明 | 参数 |
-|------|------|------|
-| `success` | 成功通知 | `message: string, duration?: number` |
-| `error` | 错误通知 | `message: string, duration?: number` |
-| `warning` | 警告通知 | `message: string, duration?: number` |
-| `info` | 信息通知 | `message: string, duration?: number` |
-| `show` | 自定义通知 | `message: string, options?: ToastOptions` |
-
-## 📦 文件结构
+## 📦 源码结构
 
 ```
 z-biz-tool-shared/
 ├── src/
 │   ├── ai/                    # AI 中台
-│   │   ├── AIManager.ts       # AI 管理器
-│   │   ├── context.ts         # AI Context
-│   │   ├── types.ts           # 类型定义
+│   │   ├── AIManager.ts       # store（useAIManager）
+│   │   ├── clients.ts         # provider 工厂与各协议客户端
+│   │   ├── context.ts         # ContextManager
+│   │   ├── types.ts
 │   │   └── index.ts
+│   ├── agent/                 # Agent 组件
 │   ├── theme/                 # 主题系统
-│   │   ├── ThemeContext.tsx   # 主题 Context
-│   │   ├── themeManager.ts    # 主题管理器
-│   │   ├── types.ts           # 类型定义
-│   │   └── index.ts
-│   ├── shortcuts/             # 快捷键系统
-│   │   ├── shortcutManager.ts # 快捷键管理器
-│   │   ├── types.ts           # 类型定义
-│   │   └── index.ts
-│   ├── notifications/         # 通知系统
-│   │   ├── notificationManager.ts # 通知管理器
-│   │   ├── ToastContainer.tsx     # Toast 容器
-│   │   └── index.ts
+│   │   ├── ThemeContext.tsx   # 明暗 context（shared 那套）
+│   │   ├── themeManager.ts    # 十主题 store
+│   │   ├── themeMode.ts       # 主题偏好纯逻辑
+│   │   └── types.ts
+│   ├── shortcuts/             # 快捷键
+│   ├── notifications/         # 通知
 │   ├── components/            # UI 组件
-│   │   ├── Spotlight/         # Spotlight 组件
-│   │   ├── ShortcutDisplay.tsx
-│   │   ├── StateIndicator.tsx
-│   │   ├── ProgressIndicator.tsx
-│   │   ├── GlobalShortcutHandler.tsx
-│   │   ├── Navbar.tsx
-│   │   ├── UIDesignSystem.tsx
-│   │   └── index.ts
 │   ├── interactions/          # 交互模式
-│   │   └── interactionPatterns.ts
-│   ├── styles/                # 样式
-│   │   ├── designTokens.ts    # 设计令牌
-│   │   └── globalStyles.ts
-│   └── index.ts               # 统一导出
-├── examples/                  # 示例代码
-│   ├── AIExample.tsx
-│   ├── ThemeExample.tsx
-│   ├── KeyboardShortcutsExample.tsx
-│   └── NotificationExample.tsx
-└── README.md
+│   ├── styles/                # 设计令牌
+│   ├── shared/                # 布局/工具组件
+│   ├── capability/            # 跨端命令契约
+│   └── index.ts               # 根导出（export * + 显式白名单）
+├── tests/                     # 单元测试（node --test）
+├── examples/                  # 示例
+└── package.json
 ```
+
+## ⚠️ 已知缺口
+
+诚实起见，下列能力**当前不提供**，别照着想象用：
+
+1. **Agent 相关方法是占位实现** —— `query`/`optimize`/`analyze`/`diagnoseError`
+   返回的是模板文本，不连任何 Agent 服务（01 A-9）。
+2. **两套主题 / 三套设计令牌并存** —— 归一尚未完成（05 台账 T3.1/T3.2）。
+3. **`ContextManager.loadFromFile` / `loadFromKnowledgeBase` 是空实现** —— 只有 `console.log`。
+4. **`InteractionFeedback.toast.*` 是空函数**。
+5. **无鉴权/无 CSRF 保护** —— 这是前端库，鉴权由宿主应用负责。
+6. **examples 尚未纳入 typecheck**（05 台账 T2.5 未落地）。
 
 ## 🎯 后续计划
 
-1. **多终端协同** - 实现终端、AI、文件等多终端数据同步
-2. **自动化流程引擎** - 支持自动化任务配置
-3. **插件系统** - 支持第三方插件
-4. **云同步** - 配置和数据云同步
-5. **性能优化** - 大数据量下的性能优化
-
----
-
-**有任何问题请查看文档或联系开发团队！**
+1. **主题与令牌归一**（T3.1/T3.2）—— 合并两套主题、三套令牌。
+2. **快捷键体系归一**（T3.3）—— `shortcutManager` 与 `useKeyboardShortcuts` 打通。
+3. **Agent 服务注入**（T3.5）—— 引入 `AgentService` 接口，让占位实现可替换。
+4. **API 报告锁定**（T3.8）—— 导出面进版本控制，变更走 diff 审查。

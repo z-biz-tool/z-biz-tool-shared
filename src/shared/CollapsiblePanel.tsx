@@ -175,9 +175,9 @@ export function CollapsiblePanel({
                 justifyContent: 'center'
               }}
             >
-              {React.cloneElement(icon as React.ReactElement<any>, {
+              {React.cloneElement(icon as React.ReactElement<{ style?: React.CSSProperties }>, {
                 style: {
-                  ...((icon as React.ReactElement<any>).props?.style),
+                  ...((icon as React.ReactElement<{ style?: React.CSSProperties }>).props?.style),
                   color: expanded ? "#667eea" : token.colorTextSecondary,
                   filter: expanded ? 'drop-shadow(0 2px 4px rgba(102,126,234,0.2))' : 'none'
                 }

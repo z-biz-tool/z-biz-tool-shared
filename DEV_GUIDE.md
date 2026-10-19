@@ -45,14 +45,29 @@ z-biz-tool-shared/
 
 ```bash
 cd z-biz-tool-shared
-npm install
+npm ci
 ```
 
-### 运行示例
+> 用 `npm ci` 而不是 `npm install` —— 后者会重写 `package-lock.json`。
+
+### 跑测试
 
 ```bash
-npm run dev
+npm test          # node --test，跑 tests/*.test.ts
+npm run typecheck # tsc --noEmit
+npm run build     # 产出 dist/（含 .js 与 .d.ts）
+npm run verify    # 只跑 dist 产物检查
 ```
+
+### 关于 examples
+
+> **2026-10-20 订正**：本指南原写"运行示例：`npm run dev`"。
+> **`package.json` 里没有 `dev` 脚本**，examples 也没有入口 HTML 或 vite 配置，
+> 这条命令从来跑不起来。
+>
+> examples 目前是**静态示例代码**，尚未纳入 typecheck
+> （05 台账 T2.5 待办）—— 它们能读，但**不保证能编译**。
+> 接入方式见 [INTEGRATION_GUIDE](./INTEGRATION_GUIDE.md)。
 
 ## 核心功能
 
@@ -63,9 +78,11 @@ npm run dev
 #### 主要功能
 
 - **统一配置管理**: 所有 AI 相关配置集中管理
-- **多提供商支持**: OpenAI、Claude、Gemini、Ollama
+- **多提供商支持**: OpenAI、Claude、Gemini、Ollama、local
+  （2026-10-20 起各 provider 走自己的协议实现；此前除 openai 外全部落进 OpenAI 分支）
 - **多种功能类型**: 聊天、命令解释、错误分析、代码生成、图像生成等
 - **上下文管理**: 自动传递文件、知识库、会话历史等上下文信息
+- **超时控制**: `AIConfig.timeout` 真正生效（默认 30000ms）
 
 #### 使用示例
 

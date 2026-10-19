@@ -1,7 +1,17 @@
 import { create } from 'zustand';
 import { AgentConfig, AgentMessage, AgentContext, AgentResponse } from './types';
 
-interface AgentStore {
+/**
+ * 查询结果的行数据。
+ *
+ * 此前 `analyze(sql, results: any)` 把 any 直接暴露在公共 API 上
+ * （01 A-13 / 06 CT-TYPE-01 要求公共 API 面 any = 0）。
+ * 库本身并不解析结果内容，只把它传给 agent —— 所以用 unknown 表达
+ * "这里有一份任意形状的数据"，既不撒谎也不削弱调用方的能力。
+ */
+export type QueryResultData = unknown;
+
+export interface AgentStore {
   config: AgentConfig;
   messages: AgentMessage[];
   context: AgentContext;
@@ -9,7 +19,7 @@ interface AgentStore {
   setContext: (context: AgentContext) => void;
   query: (naturalLanguage: string) => Promise<AgentResponse>;
   optimize: (sql: string) => Promise<AgentResponse>;
-  analyze: (sql: string, results: any) => Promise<AgentResponse>;
+  analyze: (sql: string, results: QueryResultData) => Promise<AgentResponse>;
   diagnoseError: (error: string, sql: string) => Promise<AgentResponse>;
 }
 

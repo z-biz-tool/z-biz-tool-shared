@@ -399,14 +399,14 @@ const Omnibar: FC<OmnibarProps> = ({
 
         {/* 模式切换 */}
         <div style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,0.04)', padding: 4, borderRadius: 10 }}>
-          {[
+          {([
             { key: 'navigation', icon: <HistoryOutlined />, label: '路径' },
             { key: 'search', icon: <SearchOutlined />, label: '搜索' },
             { key: 'command', icon: <MacCommandOutlined />, label: '命令' },
-          ].map((m) => (
+          ] as const).map((m) => (
             <button
               key={m.key}
-              onClick={() => setMode(m.key as any)}
+              onClick={() => setMode(m.key)}
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,

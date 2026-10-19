@@ -2,11 +2,19 @@
 import { useState } from 'react';
 import { Card, Button, Space, Input, message } from 'antd';
 import { PlayCircleOutlined, CopyOutlined, SaveOutlined } from '@ant-design/icons';
+import { errorMessage } from '../shared/errorMessage';
 
 interface SQLEditorProps {
   value?: string;
   onChange?: (value: string) => void;
-  onExecute?: (sql: string) => Promise<any>;
+  /**
+   * 执行回调的返回值。
+   *
+   * 此前是 `Promise<any>`（01 A-13）—— any 直接暴露在公共 API 面上。
+   * 组件自己并不消费返回值（只关心成功/失败），用 unknown 表达
+   * "结果形状由调用方决定"，不撒谎也不限制调用方。
+   */
+  onExecute?: (sql: string) => Promise<unknown>;
 }
 
 export const SQLEditor: React.FC<SQLEditorProps> = ({
@@ -27,8 +35,8 @@ export const SQLEditor: React.FC<SQLEditorProps> = ({
     try {
       await onExecute?.(code);
       message.success('查询执行成功');
-    } catch (error: any) {
-      message.error('查询执行失败: ' + error.message);
+    } catch (error) {
+      message.error('查询执行失败: ' + errorMessage(error));
     } finally {
       setIsExecuting(false);
     }

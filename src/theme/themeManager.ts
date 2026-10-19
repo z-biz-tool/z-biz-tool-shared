@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ThemeName, ThemeConfig, type ThemeColors } from './types';
+import { LEGACY_THEME_NAME_KEY, THEME_NAME_KEY } from './themeMode';
 
 // 主题配置
 const themes: Record<ThemeName, ThemeConfig> = {
@@ -126,7 +127,7 @@ const themes: Record<ThemeName, ThemeConfig> = {
 };
 
 // 主题存储
-interface ThemeStore {
+export interface ThemeStore {
   currentTheme: ThemeName;
   themeConfig: ThemeConfig;
   setTheme: (theme: ThemeName) => void;
@@ -143,12 +144,23 @@ export const useThemeStore = create<ThemeStore>((set, get) => ({
       currentTheme: theme,
       themeConfig: themes[theme]
     });
-    localStorage.setItem('theme', theme);
+    // A-14：原先用通用键 'theme'。同一 origin 下多个应用共用 'theme' 会互相
+    // 覆盖（谁后写谁赢），改成带库命名空间的键；旧键在 initTheme 里迁移。
+    localStorage.setItem(THEME_NAME_KEY, theme);
   },
 
   updateTheme: (theme) => {
     set((state) => {
-      const newTheme = { ...state.themeConfig, ...theme };
+      // colors 是嵌套对象，浅合并会把整个 colors 换掉 ——
+      // 调用方只想改一个颜色，结果其余颜色全丢了。深合并一层。
+      const newTheme: ThemeConfig = {
+        ...state.themeConfig,
+        ...theme,
+        colors: {
+          ...state.themeConfig.colors,
+          ...(theme.colors ?? {}),
+        },
+      };
       return {
         themeConfig: newTheme
       };
@@ -163,7 +175,17 @@ export const useThemeStore = create<ThemeStore>((set, get) => ({
 
 // 初始化主题
 export const initTheme = (): void => {
-  const savedTheme = localStorage.getItem('theme') as ThemeName;
+  // 读新键；没有则读旧键 'theme' 并迁移过来（一次性）。
+  let savedTheme = localStorage.getItem(THEME_NAME_KEY) as ThemeName | null;
+  if (!savedTheme) {
+    const legacy = localStorage.getItem(LEGACY_THEME_NAME_KEY) as ThemeName | null;
+    if (legacy && themes[legacy]) {
+      savedTheme = legacy;
+      localStorage.setItem(THEME_NAME_KEY, legacy);
+      localStorage.removeItem(LEGACY_THEME_NAME_KEY);
+    }
+  }
+
   if (savedTheme && themes[savedTheme]) {
     useThemeStore.getState().setTheme(savedTheme);
   } else {

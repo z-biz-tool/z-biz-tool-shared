@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { RobotOutlined, SendOutlined } from '@ant-design/icons';
 import { useAgentStore } from '../agent/AgentManager';
+import { errorMessage } from '../shared/errorMessage';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -65,11 +66,11 @@ export const AgentPanel: React.FC = () => {
           timestamp: Date.now(),
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       addMessage({
         id: Date.now().toString(),
         role: 'agent',
-        content: `系统错误: ${error.message}`,
+        content: `系统错误: ${errorMessage(error)}`,
         timestamp: Date.now(),
       });
     } finally {
