@@ -1,5 +1,16 @@
 // AI 提供商类型定义
-export type AIProvider = 'openai' | 'claude' | 'gemini' | 'ollama' | 'local';
+//
+// 'minimax'：MiniMax 开放平台，**OpenAI 兼容**（/v1/chat/completions 同构），
+// 故与 'openai' 共用同一套协议实现，差别只在默认 baseUrl。
+// 2026-10-20 加入：实测 https://api.minimaxi.com/v1 走 /chat/completions 返回 200，
+// 且支持多模态输入（image_url）与 /embeddings。
+export type AIProvider =
+  | 'openai'
+  | 'claude'
+  | 'gemini'
+  | 'ollama'
+  | 'local'
+  | 'minimax';
 
 // AI 功能类型
 export type AIFunctionType = 

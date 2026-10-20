@@ -146,6 +146,69 @@ test("UT-AI-03 provider=ollama 用本地默认地址，且不强制要 apiKey", 
   assert.equal(client.validateConfig(), true);
 });
 
+// ------------------------------------------------------------ UT-AI-04
+// provider=minimax（2026-10-20 新增）
+//
+// MiniMax 开放平台是 **OpenAI 兼容**的：请求形态与 openai 同构，
+// 差别在默认 baseUrl（api.minimaxi.com/v1）。
+// 这一组用例钉两件事：
+//   ① 写 minimax 就真的打 minimax 端点（不是静默落进 api.openai.com）；
+//   ② 协议形态确实与 OpenAI 同构（messages/model/Bearer 三件套）。
+
+test("UT-AI-04 provider=minimax 打 MiniMax 端点，不落进 api.openai.com", async () => {
+  const { fetch, calls } = stubFetch(OPENAI_OK);
+  const client = createClient(
+    { provider: 'minimax', modelName: 'MiniMax-M3.1-Flash', apiKey: 'sk-cp-test' },
+    fetch
+  );
+
+  const result = await client.chat('hi');
+
+  assert.equal(result.success, true);
+  assert.equal(result.content, 'hello from openai');
+  assert.equal(calls.length, 1);
+  // 字面量，不用 PROVIDER_DEFAULT_BASE_URL.minimax —— 同上，常量自引用会恒绿
+  assert.equal(calls[0].url, 'https://api.minimaxi.com/v1/chat/completions');
+  assert.equal(calls[0].init?.headers?.['Authorization'], 'Bearer sk-cp-test');
+  const body = JSON.parse(calls[0].init?.body ?? '{}');
+  assert.equal(body.model, 'MiniMax-M3.1-Flash');
+  // 协议形态与 OpenAI 同构：system 独立一条 + messages 数组
+  assert.equal(body.messages.length, 2);
+  assert.equal(body.messages[0].role, 'system');
+  assert.equal(body.messages[1].role, 'user');
+});
+
+test("UT-AI-04 provider=minimax 支持自定义 baseUrl 覆盖（代理/私有化部署）", async () => {
+  const { fetch, calls } = stubFetch(OPENAI_OK);
+  const client = createClient(
+    {
+      provider: 'minimax',
+      modelName: 'MiniMax-M3',
+      apiKey: 'k',
+      baseUrl: 'https://gateway.internal/v1/',
+    },
+    fetch
+  );
+  await client.chat('hi');
+  // 结尾斜杠要被去掉，否则拼出 //chat/completions
+  assert.equal(calls[0].url, 'https://gateway.internal/v1/chat/completions');
+});
+
+test("UT-AI-04 provider=minimax 的 getModels 走 /models 端点", async () => {
+  const { fetch, calls } = stubFetch({
+    data: [{ id: 'MiniMax-M3.1-Flash' }, { id: 'MiniMax-M3' }],
+  });
+  const client = createClient(
+    { provider: 'minimax', modelName: 'MiniMax-M3.1-Flash', apiKey: 'k' },
+    fetch
+  );
+
+  const models = await client.getModels();
+
+  assert.deepEqual(models, ['MiniMax-M3.1-Flash', 'MiniMax-M3']);
+  assert.equal(calls[0].url, 'https://api.minimaxi.com/v1/models');
+});
+
 test("UT-AI-03 provider=local 没给 baseUrl 时明确报错，不静默打 localhost", async () => {
   const { fetch, calls } = stubFetch(OPENAI_OK);
   const client = createClient({ provider: 'local', modelName: 'my-model' }, fetch);
@@ -211,6 +274,9 @@ test("UT-AI-03 默认 baseUrl 常量表本身是对的（防止被测常量被�
     ollama: 'http://localhost:11434/v1',
     claude: 'https://api.anthropic.com/v1',
     gemini: 'https://generativelanguage.googleapis.com/v1beta',
+    // 2026-10-20 新增 MiniMax（OpenAI 兼容）。加 provider 时**必须同步改这一条** ——
+    // 这条用例的作用就是「改常量表必须显式地改在这里」，漏改就会红。
+    minimax: 'https://api.minimaxi.com/v1',
   });
 });
 

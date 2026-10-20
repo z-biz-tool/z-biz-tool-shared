@@ -588,6 +588,9 @@ export const PROVIDER_DEFAULT_BASE_URL = {
   ollama: 'http://localhost:11434/v1',
   claude: 'https://api.anthropic.com/v1',
   gemini: 'https://generativelanguage.googleapis.com/v1beta',
+  // MiniMax 开放平台（国内站）。**OpenAI 兼容** ⇒ 复用 OpenAICompatibleClient，
+  // 差别只在默认 baseUrl。2026-10-20 实测该端点 /chat/completions 返回 200。
+  minimax: 'https://api.minimaxi.com/v1',
 } as const;
 
 /**
@@ -610,6 +613,16 @@ export function createClient(config: AIConfig, fetchImpl?: FetchLike): AIClient 
         config,
         fetchImpl ?? defaultFetch,
         PROVIDER_DEFAULT_BASE_URL.ollama
+      );
+    // MiniMax 开放平台：OpenAI 兼容协议 ⇒ 与 openai 同一个客户端类，
+    // 只是默认 baseUrl 不同。写独立分支（而不是并进 case 'openai'），
+    // 是为了让「配置写 minimax 就真的打 minimax」这件事在代码里看得见，
+    // 也让默认 baseUrl 有唯一出处。
+    case 'minimax':
+      return new OpenAICompatibleClient(
+        config,
+        fetchImpl ?? defaultFetch,
+        PROVIDER_DEFAULT_BASE_URL.minimax
       );
     case 'claude':
       return new AnthropicClient(config, fetchImpl ?? defaultFetch);
