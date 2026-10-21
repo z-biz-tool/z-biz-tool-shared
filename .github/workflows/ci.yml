@@ -83,9 +83,17 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # 2026-10-21 补上 `npm run lint`：
+      # 此前**刻意不挂** —— 因为仓库里没有 eslint 配置文件，本机实测 exit 2，
+      # 报 "ESLint couldn't find a configuration file"。它红不是因为代码有问题，
+      # 而是工具根本没配好；把它挂成门禁只会得到一条永久红灯。
+      # 现在补了 `.eslintrc.json`（eslint 8.57.1 的 legacy 配置，依赖用仓里已有的
+      # @typescript-eslint/parser + plugin，**不新增任何依赖**），lint 真的能跑了，
+      # 所以这条门禁可以挂上。
+      # 顺带清掉了 lint 暴露的两处真死代码（`AIManager.ts` 多余的 AIClient import、
+      # `ThemeContext.tsx` 里解构出来却没用过的 `mode`）。
+      - name: Lint
+        run: npm run lint
+
       - name: Build
         run: npm run build
-
-      # 刻意不加 `npm run lint`：本机实测 exit 2，报 "ESLint couldn't find a configuration
-      # file"（仓库里没有 eslint 配置），它红不是因为代码有问题而是工具根本没配好。
-      # 把它挂成门禁只会得到一条永久红灯；要恢复 lint 得先补配置文件，那是另一件事。

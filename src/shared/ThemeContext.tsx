@@ -144,7 +144,7 @@ export const ThemeToggle: React.FC<{ size?: "small" | "middle" | "large" }> = ({
 
 // 带下拉菜单的主题选择器
 export const ThemeSelector: React.FC<{ popup?: boolean }> = ({ popup: _popup = false }) => {
-  const { mode, preference, setPreference } = useTheme();
+  const { preference, setPreference } = useTheme();
   const { token: _token } = antdTheme.useToken();
 
   // A-8：此前这里的 onClick 调的是 setModeInternal —— 一个

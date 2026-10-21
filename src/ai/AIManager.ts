@@ -5,7 +5,7 @@ import { create } from 'zustand';
 // 于是运行期真去 ./types 找一个只存在于编译期的导出并抛
 // 「does not provide an export named 'AIConfig'」。
 import type { AIConfig, AIFunctionType, AIFunctionParams, AIResult, AIContext, Agent } from './types';
-import { createClient, type AIClient, type FetchLike } from './clients';
+import { createClient, type FetchLike } from './clients';
 
 // 客户端实现见 ./clients.ts：
 //   - provider 工厂此前对 claude/gemini/ollama/local 全部落进 default 分支
