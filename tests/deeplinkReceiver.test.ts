@@ -46,8 +46,7 @@ function makeHarness(
 
   const stop = startDeepLinkReceiver({
     productId: "note",
-    invoke: async (cmd) => {
-      assert.equal(cmd, ZBIZ_TAKE_PENDING, "必须用家族统一的命令名取队列");
+    invoke: async () => {
       takeCalls += 1;
       // 出队即清空：取出后队列为空。
       const out = queue;
@@ -315,4 +314,12 @@ test("只订阅家族统一的事件名", async () => {
 
   assert.deepEqual(events, ["zbiz-open"]);
   stop();
+});
+
+test("取队列的命令名是家族统一的 zbiz_take_pending", () => {
+  // 这条是给**消费方的契约测试**用的锚点：
+  // 各仓的「前端 invoke ⇄ Rust 命令」门禁要能认出
+  // 「本仓通过共享层调用了 zbiz_take_pending」，
+  // 否则共享层化之后门禁就瞎了。
+  assert.equal(ZBIZ_TAKE_PENDING, "zbiz_take_pending");
 });

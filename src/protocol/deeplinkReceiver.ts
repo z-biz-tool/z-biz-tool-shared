@@ -77,9 +77,13 @@ export interface DeepLinkReceiverOptions {
   /**
    * 取队列。签名与 Tauri 的 `invoke` 兼容。
    *
+   * **刻意不接受命令名参数** —— 命令名是共享层的事（`ZBIZ_TAKE_PENDING`），
+   * 消费方不该重复它：重复就有两份要同步的地方，一份改了另一份没改，
+   * 结果是「点了没反应」且没有任何报错。
+   *
    * 注入而不是直接 import：非 Tauri 环境（vitest / 浏览器预览）没有这个命令。
    */
-  invoke: (cmd: string) => Promise<Handoff[]>;
+  invoke: () => Promise<Handoff[]>;
 
   /**
    * 订阅事件。签名与 Tauri 的 `listen` 兼容。
@@ -137,7 +141,7 @@ export function startDeepLinkReceiver(options: DeepLinkReceiverOptions): DeepLin
   const drain = async () => {
     let items: Handoff[];
     try {
-      items = await invoke(ZBIZ_TAKE_PENDING);
+      items = await invoke();
     } catch (e) {
       // 非 Tauri 环境（vitest / 浏览器预览）属预期，不算错误。
       log?.(`取深链队列失败：${String(e)}`, { product: productId, action: "", params: {} });
