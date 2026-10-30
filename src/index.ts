@@ -8,6 +8,8 @@ export * from './components';
 export * from './interactions';
 export * from './styles';
 export * from './capability';
+export * from './protocol';
+export * from './types';
 
 // shared 模块与 theme/components 存在重名成员
 // （ThemeProvider/useTheme、EmptyState），顶层只显式导出无冲突部分

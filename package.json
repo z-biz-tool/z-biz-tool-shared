@@ -54,6 +54,14 @@
     "./capability": {
       "types": "./dist/capability/index.d.ts",
       "default": "./dist/capability/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol/index.d.ts",
+      "default": "./dist/protocol/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
     }
   },
   "files": [
