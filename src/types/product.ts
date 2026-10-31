@@ -39,12 +39,14 @@ export type ProductId =
   | "cpu"
   | "db"
   | "file"
+  | "history"
   | "kb"
   | "math"
   | "mind"
   | "music"
   | "note"
   | "pet"
+  | "remote"
   | "sys"
   | "terminal"
   | "worker";
@@ -56,12 +58,14 @@ export const PRODUCT_IDS: readonly ProductId[] = [
   "cpu",
   "db",
   "file",
+  "history",
   "kb",
   "math",
   "mind",
   "music",
   "note",
   "pet",
+  "remote",
   "sys",
   "terminal",
   "worker",
