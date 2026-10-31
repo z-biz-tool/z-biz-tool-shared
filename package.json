@@ -1,6 +1,6 @@
 {
   "name": "z-biz-tool-shared",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "license": "MIT",
   "description": "z-biz-tool 核心共享模块（AI/Agent/主题/快捷键/组件）",
   "type": "module",
@@ -62,6 +62,10 @@
     "./protocol": {
       "types": "./dist/protocol/index.d.ts",
       "default": "./dist/protocol/index.js"
+    },
+    "./sso": {
+      "types": "./dist/sso/index.d.ts",
+      "default": "./dist/sso/index.js"
     },
     "./testkit": {
       "types": "./dist/testkit/index.d.ts",
