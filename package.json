@@ -63,6 +63,10 @@
       "types": "./dist/protocol/index.d.ts",
       "default": "./dist/protocol/index.js"
     },
+    "./hash": {
+      "types": "./dist/hash/index.d.ts",
+      "default": "./dist/hash/index.js"
+    },
     "./sso": {
       "types": "./dist/sso/index.d.ts",
       "default": "./dist/sso/index.js"
