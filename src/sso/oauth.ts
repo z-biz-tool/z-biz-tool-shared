@@ -150,6 +150,32 @@ export async function createCodeChallenge(
  * ------------------------------------------------------------------ */
 
 /**
+ * 挑出配置里缺失/空白的必填项。
+ *
+ * **这是「配置是否完整」的唯一判据** —— `authorizeWithSso` 和各仓的适配层
+ * 都调它。若适配层自己手抄一份清单，两边必然漂移：协议层新加一个必填项，
+ * 适配层那份不会跟着改，于是「端口先绑了、然后才发现配置不全」——
+ * 端口泄漏，用户第二次登录撞「端口被占用」。
+ *
+ * @param requireRedirectUri 是否把 `redirectUri` 也算作必填。
+ *   适配层在**还没**拼 redirectUri 之前自检 ⇒ 传 false；
+ *   协议层最终自检 ⇒ 传 true。
+ */
+export function missingSsoConfigFields(
+  config: Partial<SsoConfig>,
+  requireRedirectUri = true,
+): string[] {
+  const required = (
+    ["authorizeUrl", "tokenUrl", "clientId", "scope"] as ReadonlyArray<keyof SsoConfig>
+  ).filter((k) => !config[k] || !String(config[k]).trim());
+  const missing: string[] = [...required];
+  if (requireRedirectUri && (!config.redirectUri || !String(config.redirectUri).trim())) {
+    missing.push("redirectUri");
+  }
+  return missing;
+}
+
+/**
  * 拼授权 URL。
  *
  * 参数顺序固定（`response_type` / `client_id` / `redirect_uri` / `scope` / `state` /
@@ -467,9 +493,7 @@ export async function authorizeWithSso(
   env: SsoEnvironment,
 ): Promise<SsoResult<SsoSession>> {
   // ── 0. 配置自检：错在这里比错在后面省事得多 ──────────────────────
-  const missing = (["authorizeUrl", "tokenUrl", "clientId", "scope", "redirectUri"] as const).filter(
-    (k) => !config[k] || !String(config[k]).trim(),
-  );
+  const missing = missingSsoConfigFields(config, true);
   if (missing.length > 0) {
     return {
       ok: false,

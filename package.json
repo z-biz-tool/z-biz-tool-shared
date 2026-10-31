@@ -1,6 +1,6 @@
 {
   "name": "z-biz-tool-shared",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "license": "MIT",
   "description": "z-biz-tool 核心共享模块（AI/Agent/主题/快捷键/组件）",
   "type": "module",
@@ -66,6 +66,10 @@
     "./sso": {
       "types": "./dist/sso/index.d.ts",
       "default": "./dist/sso/index.js"
+    },
+    "./sso/tauri": {
+      "types": "./dist/sso/tauriAdapter.d.ts",
+      "default": "./dist/sso/tauriAdapter.js"
     },
     "./testkit": {
       "types": "./dist/testkit/index.d.ts",
