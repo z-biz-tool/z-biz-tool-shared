@@ -23,11 +23,14 @@ import {
   buildProductRegistry,
   isProductId,
   validateProductMeta,
-  type DeepLinkResult,
   type ProductId,
   type ProductMeta,
   type ProductRegistry,
 } from "./product";
+// DeepLinkResult 定义在协议层，`product.ts` 只是 import 它、没有再导出，
+// 所以这里必须直接向协议层要 —— 从 "./product" 拿会得到
+// "declares 'DeepLinkResult' locally, but it is not exported"（TS2459）。
+import type { DeepLinkResult } from "../protocol/deeplink";
 
 /**
  * 自报文件在仓根的**相对路径**。
