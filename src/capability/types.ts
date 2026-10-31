@@ -1,10 +1,14 @@
-// cap-img 命令契约（z-biz-tool-capability v0.1.1）
+// cap-img 命令契约（z-biz-tool-capability crates/cap-img 0.3.0）。
 //
 // 矩阵规划 03 §4.2：shared 只放契约，不放实现。本文件只描述 Rust 侧
 // cap-img 的调用面；实现落在仓库 `z-biz-tool-capability`，消费方在 Tauri
 // 后端的 `#[tauri::command]` 薄壳里调用 Rust 后再透传给前端。
 //
 // 文件命名约定：Rust 侧 snake_case，前端侧 camelCase（如 get_image_info → getImageInfo）。
+//
+// ⚠️ 其余 crate 的契约在同目录的 cap-audio.ts / cap-video.ts / cap-doc.ts /
+// cap-llm.ts / cap-hub.ts / cap-meeting.ts / cap-hash.ts / cap-sso.ts，
+// 统一由 index.ts 导出。
 
 /** 图片信息（对应 Rust `cap_img::ImageInfo`） */
 export interface ImageInfo {
