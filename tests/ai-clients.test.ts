@@ -496,3 +496,89 @@ test("executeWithAgent 找不到 agent 时返回错误而不是抛异常", async
   assert.equal(result.success, false);
   assert.match(result.error ?? '', /not found/);
 });
+
+// ── 免密钥判据（2026-10-31）────────────────────────────────────────────
+//
+// 此前 `validateConfig()` 的判据是 `needsKey = provider === 'openai'` ——
+// 于是 **minimax（云厂商，必须有 Key）被判成不需要**，
+// 而 ollama（本地）反倒要 Key。判据方向整个是反的。
+//
+// 金标：Rust `cap_llm::is_private_endpoint()` 与 `LlmConfig::needs_api_key()`。
+// 共享层 `privateEndpoint.ts` 是它的逐条镜像。
+
+test("判据：公网 provider 缺 Key ⇒ 不算配置好", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  // minimax 是公网云厂商 —— 必须有 Key。此前被判成「不需要 Key」。
+  const client = createClient({ provider: 'minimax', modelName: 'm' }, fetch);
+  assert.equal(client.validateConfig(), false);
+});
+
+test("判据：公网 provider 有 Key ⇒ 配置好", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  const client = createClient(
+    { provider: 'minimax', modelName: 'm', apiKey: 'k' },
+    fetch
+  );
+  assert.equal(client.validateConfig(), true);
+});
+
+test("判据：私网地址缺 Key ⇒ 配置好（自建服务没有鉴权层）", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  const client = createClient(
+    {
+      provider: 'local',
+      modelName: 'zBiz-Text-35B',
+      baseUrl: 'http://192.168.31.249:8200/v1',
+    },
+    fetch
+  );
+  assert.equal(client.validateConfig(), true);
+});
+
+test("判据：Anthropic / Gemini 同样按地址判，而不是无条件要 Key", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  // 自建的 Anthropic 兼容端点没有鉴权层，不该被判成「没配好」。
+  const claude = createClient(
+    {
+      provider: 'claude',
+      modelName: 'm',
+      baseUrl: 'http://127.0.0.1:8200/v1',
+    },
+    fetch
+  );
+  assert.equal(claude.validateConfig(), true);
+
+  // 公网 Anthropic 仍然要 Key。
+  const claudePub = createClient({ provider: 'claude', modelName: 'm' }, fetch);
+  assert.equal(claudePub.validateConfig(), false);
+});
+
+test("判据：模型名必填（不管有没有 Key）", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  const client = createClient(
+    { provider: 'local', baseUrl: 'http://127.0.0.1:8200/v1' },
+    fetch
+  );
+  assert.equal(client.validateConfig(), false);
+});
+
+test("阴性对照：同一判据对私网与公网必须给出相反结论", () => {
+  const { fetch } = stubFetch(OPENAI_OK);
+  // 用 openai（走 OpenAICompatibleClient，判据在同一个函数里）而不是 local ——
+  // local 客户端压根不看密钥（它永远免），拿来对照测不出判据的方向。
+  const priv = createClient(
+    {
+      provider: 'openai',
+      modelName: 'm',
+      baseUrl: 'http://127.0.0.1:8200/v1',
+    },
+    fetch
+  ).validateConfig();
+  const pub = createClient(
+    { provider: 'openai', modelName: 'm', baseUrl: 'https://api.example.com/v1' },
+    fetch
+  ).validateConfig();
+  assert.notEqual(priv, pub, '私网与公网必须给出相反结论');
+  assert.equal(priv, true);
+  assert.equal(pub, false);
+});

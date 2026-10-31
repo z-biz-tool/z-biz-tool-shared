@@ -21,6 +21,7 @@ import type {
   AIResult,
   AIContext,
 } from './types';
+import { needsApiKey } from './privateEndpoint';
 
 /** fetch 的最小结构（只声明本文件用得到的字段，便于测试注入桩） */
 export interface AIClientRequestInit {
@@ -302,12 +303,15 @@ class OpenAICompatibleClient extends BaseAIClient {
   }
 
   validateConfig(): boolean {
-    // 本地服务（ollama / local）可以不带 apiKey。
-    const needsKey = this.config.provider === 'openai';
-    return (
-      !!this.config.modelName &&
-      (needsKey ? !!this.config.apiKey : true)
-    );
+    // 要不要密钥：与后端 cap-llm 的 `needs_api_key()` 同口径 ——
+    // 私网地址（自建服务，没有鉴权层）免密钥，公网要。
+    //
+    // 2026-10-31 修：此前是 `needsKey = provider === 'openai'` ——
+    // 于是 **minimax（云厂商，必须有 Key）被判成不需要**，
+    // 而 ollama（本地）反倒要 Key。判据方向整个是反的。
+    // 共享层 `privateEndpoint.ts` 是 Rust `is_private_endpoint()` 的逐条镜像。
+    const needsKey = needsApiKey(undefined, this.baseUrl);
+    return !!this.config.modelName && (needsKey ? !!this.config.apiKey : true);
   }
 }
 
@@ -422,11 +426,15 @@ class AnthropicClient extends BaseAIClient {
   }
 
   validateConfig(): boolean {
-    return !!this.config.apiKey && !!this.config.modelName;
+    // 与 OpenAI 兼容客户端同口径：私网地址免密钥（自建端点没有鉴权层），
+    // 公网要。此前是无条件 `!!apiKey` ⇒ 指向本机代理的 Anthropic 兼容端点
+    // 被判成「没配好」，用户不知道该做什么。
+    const needsKey = needsApiKey(undefined, this.baseUrl);
+    return !!this.config.modelName && (needsKey ? !!this.config.apiKey : true);
   }
 }
 
-/** Google Gemini 客户端（provider: 'gemini'） */
+/** Google Gemini 客户端（provider: 'gemini') */
 class GeminiClient extends BaseAIClient {
   protected readonly baseUrl: string;
 
@@ -537,7 +545,10 @@ class GeminiClient extends BaseAIClient {
   }
 
   validateConfig(): boolean {
-    return !!this.config.apiKey && !!this.config.modelName;
+    // Gemini 同样是 OpenAI 之外的协议，但「要不要密钥」的口径必须一致：
+    // 私网端点免密钥，公网要。此前无条件 `!!apiKey`。
+    const needsKey = needsApiKey(undefined, this.baseUrl);
+    return !!this.config.modelName && (needsKey ? !!this.config.apiKey : true);
   }
 }
 

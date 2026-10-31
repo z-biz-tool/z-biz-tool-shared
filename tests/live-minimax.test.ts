@@ -29,6 +29,38 @@ const skipReason = KEY
   ? undefined
   : '未设置 MINIMAX_API_KEY —— 跳过真实 API 实测（这是「没跑」，不是「跑过了」）';
 
+/**
+ * 端点是否**不校验密钥**（本机 / 局域网上的自建网关）。
+ *
+ * LIVE-03 的前提是「服务端会拒假 key」。指向本地网关时这个前提不成立：
+ * 网关没有鉴权层，任何 key（包括假的）都放行 —— 那是**正确行为**。
+ * 不区分的话，把 MINIMAX_BASE_URL 指到本地模型会红一条假失败。
+ */
+function isKeylessEndpoint(baseUrl: string): boolean {
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return (
+    host === 'localhost' ||
+    host === '::1' ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /\.(local|lan|internal)$/.test(host)
+  );
+}
+
+const keyless = isKeylessEndpoint(BASE_URL);
+const skipReasonReject =
+  skipReason ??
+  (keyless
+    ? `端点 ${BASE_URL} 是本地/内网网关（无鉴权层）—— 「假 key 必须被拒」的前提不成立，跳过`
+    : undefined);
+
 function liveConfig(overrides: Partial<AIConfig> = {}): AIConfig {
   return {
     provider: 'minimax',
@@ -77,7 +109,7 @@ test('LIVE-02 minimax 真实端点：模型列表能拉到，且含配置里的�
   console.log(`  [LIVE-02] 拉到 ${models.length} 个模型，含 ${MODEL}`);
 });
 
-test('LIVE-03 minimax 真实端点：错误的 key 会被服务端拒（不是本地假装成功）', { skip: skipReason }, async () => {
+test('LIVE-03 minimax 真实端点：错误的 key 会被服务端拒（不是本地假装成功）', { skip: skipReasonReject }, async () => {
   const client = createClient(liveConfig({ apiKey: 'sk-cp-definitely-invalid-key-for-test' }));
 
   const result = await client.chat('hi');
