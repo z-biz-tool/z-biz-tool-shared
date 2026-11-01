@@ -310,6 +310,7 @@ test("产品 id 无重复，且不含 capability/shared/lead（无窗口，唤�
 });
 
 test("产品 id 与家族实际产品仓一致（新增产品要同步改 product.ts）", () => {
+  // kb 2026-11-01 摘除：并入 note + cap-doc，仓库归档
   const expected = [
     "aigen",
     "box",
@@ -317,7 +318,6 @@ test("产品 id 与家族实际产品仓一致（新增产品要同步改 produc
     "db",
     "file",
     "history",
-    "kb",
     "math",
     "mind",
     "music",

@@ -32,6 +32,9 @@ import type { DeepLinkResult } from "../protocol/deeplink";
  *
  * 与 bundle id / 数据目录命名保持一致（`z-biz-tool-db` → `db`），
  * 减少用户与开发者的心智负担。
+ *
+ * `kb` 已于 2026-11-01 摘除：能力并入 note + cap-doc，仓库归档
+ * （与 cap-hub 的 PRODUCT_IDS 同步变更）。
  */
 export type ProductId =
   | "aigen"
@@ -40,7 +43,6 @@ export type ProductId =
   | "db"
   | "file"
   | "history"
-  | "kb"
   | "math"
   | "mind"
   | "music"
@@ -59,7 +61,6 @@ export const PRODUCT_IDS: readonly ProductId[] = [
   "db",
   "file",
   "history",
-  "kb",
   "math",
   "mind",
   "music",
