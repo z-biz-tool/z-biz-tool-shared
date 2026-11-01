@@ -41,8 +41,36 @@ const CRC_TABLE = (() => {
 
 const encoder = new TextEncoder();
 
+/**
+ * 类型守卫：字节版 API 必须收 Uint8Array。
+ *
+ * 为什么要它：JS 的 `Uint8Array` 与 `string` 在 `bytes.length` / `bytes[i]` 上
+ * 长得几乎一样 —— 把字符串传进字节版函数**不报错**，只是逐字符取到的是字符码，
+ * `^= bytes[i]` 后 `>>> 0` 变成 0，于是**静默算出一个错的哈希**。
+ *
+ * 2026-11-01 实测：`fnv1a32Hex("foobar")` 返回 `7f77879d`，而正确值是
+ * `bf9cf968` —— 不抛异常、不写错日志，只是把错值当对值用。
+ * 哈希值会进缓存键、通关记录 id、组件版本号，错值比崩更难查。
+ */
+function assertBytes(value: unknown, fn: string, strHint: string): asserts value is Uint8Array {
+  if (value instanceof Uint8Array) return;
+  const got = value === null ? "null" : typeof value;
+  throw new TypeError(
+    typeof value === "string"
+      ? `${fn} 需要 Uint8Array；收到 string。${strHint}`
+      : `${fn} 需要 Uint8Array；收到 ${got}`,
+  );
+}
+
+/** 类型守卫：字符串版 API 必须收 string。 */
+function assertText(value: unknown, fn: string): asserts value is string {
+  if (typeof value === "string") return;
+  throw new TypeError(`${fn} 需要 string；收到 ${value === null ? "null" : typeof value}`);
+}
+
 /** FNV-1a 32 位哈希：字节进 → 数值出 */
 export function fnv1a32(bytes: Uint8Array): number {
+  assertBytes(bytes, "fnv1a32", "字符串请用 fnv1a32Str（按 UTF-8 字节）");
   let h = FNV1A_32_OFFSET;
   for (let i = 0; i < bytes.length; i++) {
     h ^= bytes[i];
@@ -53,21 +81,25 @@ export function fnv1a32(bytes: Uint8Array): number {
 
 /** FNV-1a 32 位哈希（字符串按 UTF-8 字节） */
 export function fnv1a32Str(text: string): number {
+  assertText(text, "fnv1a32Str");
   return fnv1a32(encoder.encode(text));
 }
 
 /** FNV-1a 32 位哈希的 8 位小写十六进制（补零） */
 export function fnv1a32Hex(bytes: Uint8Array): string {
+  assertBytes(bytes, "fnv1a32Hex", "字符串请用 fnv1a32StrHex（按 UTF-8 字节）");
   return fnv1a32(bytes).toString(16).padStart(8, "0");
 }
 
 /** FNV-1a 32 位哈希的 8 位小写十六进制（字符串按 UTF-8 字节） */
 export function fnv1a32StrHex(text: string): string {
+  assertText(text, "fnv1a32StrHex");
   return fnv1a32Str(text).toString(16).padStart(8, "0");
 }
 
 /** CRC-32/IEEE：字节进 → 数值出 */
 export function crc32(bytes: Uint8Array): number {
+  assertBytes(bytes, "crc32", "字符串请先 new TextEncoder().encode(text) 再传字节");
   let c = 0xffffffff;
   for (let i = 0; i < bytes.length; i++) {
     c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
@@ -77,5 +109,6 @@ export function crc32(bytes: Uint8Array): number {
 
 /** CRC-32/IEEE 的 8 位小写十六进制（补零） */
 export function crc32Hex(bytes: Uint8Array): string {
+  assertBytes(bytes, "crc32Hex", "字符串请先 new TextEncoder().encode(text) 再传字节");
   return crc32(bytes).toString(16).padStart(8, "0");
 }
