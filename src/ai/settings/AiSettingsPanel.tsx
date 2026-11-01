@@ -83,7 +83,6 @@ import {
 } from "./logic";
 import type {
   AiConfigDraft,
-  AiSettingsActions,
   AiSettingsLabels,
   AiSettingsPanelProps,
   LlmFailure,
