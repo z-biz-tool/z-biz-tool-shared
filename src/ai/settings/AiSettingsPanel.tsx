@@ -311,7 +311,7 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
       <Alert
         type="info"
         showIcon
-        message="一次配置，全家通用"
+        title="一次配置，全家通用"
         description={
           <Space size={16} wrap style={{ marginTop: 4 }}>
             <span>① 选一家服务商</span>
@@ -347,7 +347,7 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
           <Alert
             type="warning"
             showIcon
-            message="读取不到服务商列表"
+            title="读取不到服务商列表"
             description="可能后端未就绪。你仍然可以在下面选「自定义」手动填写地址。"
           />
         ) : (
@@ -441,7 +441,7 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
                 </Space>
               }
               extra={
-                <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                <Space orientation="vertical" size={2} style={{ width: "100%" }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {labels.keyOnlyLocal}
                   </Text>
@@ -484,7 +484,7 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
               type="success"
               showIcon
               icon={<LaptopOutlined />}
-              message={labels.noKeyNeeded}
+              title={labels.noKeyNeeded}
               description={
                 currentPreset ? (
                   <Text type="secondary" style={{ fontSize: 12 }}>
@@ -614,9 +614,9 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
         <Alert
           type="error"
           showIcon
-          message={failure.message}
+          title={failure.message}
           description={
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               {failure.hint && <Paragraph style={{ margin: 0 }}>{failure.hint}</Paragraph>}
               {failure.status ? (
                 <Text type="secondary" style={{ fontSize: 12 }}>
@@ -636,7 +636,7 @@ export function AiSettingsPanel(props: AiSettingsPanelProps) {
         <Alert
           type="success"
           showIcon
-          message={okText}
+          title={okText}
           style={{ marginBottom: 12 }}
         />
       )}
@@ -856,7 +856,7 @@ export function AiProviderCard({
         boxShadow: active ? "0 0 0 2px color-mix(in srgb, var(--ant-color-primary) 18%, transparent)" : undefined,
       }}
     >
-      <Space direction="vertical" size={2}>
+      <Space orientation="vertical" size={2}>
         <Text strong>{preset.label}</Text>
         <AiProviderBadge preset={preset} />
       </Space>
