@@ -75,6 +75,10 @@ const CRATES: CrateSpec[] = [
       flipImage: "flip",
       cropImage: "crop",
       applyFilter: "apply_filter",
+      // EXIF 全量读写（cap-img 0.4.0 起）
+      readExif: "read",
+      writeExif: "write",
+      stripExif: "strip",
     },
     internals: [
       "decode_data_url",
@@ -85,8 +89,29 @@ const CRATES: CrateSpec[] = [
       "parse_format",
       "mime_for_ext",
       "ext_for_mime",
+      // --- cap-img 0.4.0 的 EXIF 模块 ---
+      // 这几个是 read/write/strip 的**内部变体**或**纯查询**，
+      // 前端要的能力已经被 readExif / writeExif / stripExif 覆盖：
+      //   read_container  —— 读原始 Exif 对象（Rust 侧组合用）
+      //   read_or_empty   —— 没有 EXIF 时返回空快照而不是 None
+      //   read_json       —— 直接吐 JSON 字符串（薄壳自用）
+      //   normalize       —— 把 kamadak-exif 的 Exif 转成我们的结构（纯转换）
+      // 以下是 ExifData 的**查询方法**，不是独立命令：
+      //   display / value / find / field_count / is_empty / gps_coordinates
+      "read_container",
+      "read_or_empty",
+      "read_json",
+      "normalize",
+      "display",
+      "value",
+      "find",
+      "field_count",
+      "is_empty",
+      "gps_coordinates",
     ],
-    rustFiles: ["src/lib.rs"],
+    // src/exif.rs 是 0.4.0 新增的 EXIF 模块 —— 不登记它，
+    // 门禁就看不见 exif.rs 里的 pub fn，EXIF 契约会失去交叉校验。
+    rustFiles: ["src/lib.rs", "src/exif.rs"],
   },
   {
     crate: "cap-audio",
