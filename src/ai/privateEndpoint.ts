@@ -38,6 +38,14 @@
  * 不引 `url` 包：这里的输入只有 baseUrl 一种，且历史配置里存在
  * `192.168.1.2:8200/v1`（无 scheme）这种写法，严格解析器反而要额外容错。
  * 取不到就返回空串，由调用方当作「不是私有地址」处理。
+ *
+ * ## 注意：这里**剥掉端口**是刻意的
+ *
+ * 端口与「这是不是本机 / 局域网」无关 —— 判断依据是 IPv4/IPv6 保留地址
+ * （RFC 1918 / RFC 4193），不会随时间失效。按端口列举必然过时：
+ * llama.cpp 8200、Ollama 11434、LM Studio 1234、vLLM 8000。
+ *
+ * 但**服务身份匹配**要带端口 —— 见 [`serviceHost`]。
  */
 export function hostOf(url: string): string {
   const rest = url.includes('://') ? url.slice(url.indexOf('://') + 3) : url;
@@ -52,6 +60,45 @@ export function hostOf(url: string): string {
     return end === -1 ? afterUser : afterUser.slice(0, end + 1);
   }
   return afterUser.split(':')[0] ?? '';
+}
+
+/**
+ * 取**服务身份**用的 host —— **保留端口**。
+ *
+ * ## 为什么需要两套 host 口径
+ *
+ * `hostOf`（剥端口）回答的是「这是不是本机 / 局域网」——
+ * 那是**地址属性**，只看 IP 段，与端口无关。
+ *
+ * `serviceHost`（留端口）回答的是「这是不是同一个服务」——
+ * 那是**服务身份**，端口是身份的一部分。
+ *
+ * ## 混用会咬人（真实 bug）
+ *
+ * 自建分类下有两条回环预设：
+ * - `zbiz-local` —— `127.0.0.1:8200`，**免密钥**（自家网关，回环不校验）
+ * - `freellmapi` —— `127.0.0.1:3001`，**要密钥**（强制统一 Bearer）
+ *
+ * 若「服务身份」也用剥端口的 `hostOf`，两者都会被算成 `127.0.0.1`，
+ * 匹配时命中数组里靠前的那条 ⇒ **要求密钥的服务被判成免密钥** ⇒
+ * 前端不显示密钥框 ⇒ 用户配了也连不上，且没有任何报错。
+ *
+ * Rust 侧 `detect_preset()` 的 `host_of` 一直保留端口（`127.0.0.1:8200`），
+ * 前端必须与它同口径，否则同一个地址前后端得出不同结论 —— 判据分裂。
+ */
+export function serviceHost(url: string): string {
+  const rest = url.includes('://') ? url.slice(url.indexOf('://') + 3) : url;
+  const hostPort = rest.split(/[/?#]/)[0] ?? '';
+  // userinfo@host
+  const afterUser = hostPort.includes('@')
+    ? hostPort.slice(hostPort.lastIndexOf('@') + 1)
+    : hostPort;
+  // IPv6 字面量 [::1]:8200 —— 端口在 `]` 之后，要保留
+  if (afterUser.startsWith('[')) {
+    const end = afterUser.indexOf(']');
+    return end === -1 ? afterUser : afterUser.slice(0, end + 1);
+  }
+  return afterUser;
 }
 
 /** IPv4 是否落在回环 / 私有段 / link-local / 未指定地址里。 */

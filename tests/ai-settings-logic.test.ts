@@ -64,6 +64,14 @@ const PRESETS: PresetView[] = [
     category_label: '自建 / 本地',
     requires_api_key: false,
   }),
+  preset({
+    id: 'freellmapi',
+    label: 'FreeLLMAPI（免费额度聚合）',
+    base_url: 'http://127.0.0.1:3001/v1',
+    category: 'self_hosted',
+    category_label: '自建 / 本地',
+    requires_api_key: true,
+  }),
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -77,7 +85,13 @@ test('预设按分类分组且保留后端顺序', () => {
   assert.equal(groups[0].items[0].id, 'openai');
   assert.equal(groups[1].key, 'domestic');
   assert.equal(groups[2].key, 'self_hosted');
-  assert.equal(groups[2].items.length, 2);
+  // 自建组：ollama + zbiz-local + freellmapi（三条）
+  assert.equal(groups[2].items.length, 3);
+  // 顺序保留后端给的顺序 —— 「本地服务在最后」这个直觉不能被打乱
+  assert.deepEqual(
+    groups[2].items.map((p) => p.id),
+    ['ollama', 'zbiz-local', 'freellmapi'],
+  );
 });
 
 test('空预设列表分出零组', () => {
@@ -115,6 +129,40 @@ test('陌生地址不匹配任何预设', () => {
   // 阴性对照：不能瞎认一个
   assert.equal(findPreset(PRESETS, '', 'https://my-proxy.example.com/v1'), undefined);
   assert.equal(findPreset(PRESETS, '', ''), undefined);
+});
+
+// ─────────────────────────────────────────────────────────────
+// 预设识别：端口是身份的一部分（真实 bug 的回归）
+// ─────────────────────────────────────────────────────────────
+
+test('同 host 不同端口必须认出不同的服务', () => {
+  // 背景：自建分类下有两条回环预设，端口是区分它们的唯一依据 ——
+  //   zbiz-local  127.0.0.1:8200  免密钥（自家网关，回环不校验）
+  //   freellmapi  127.0.0.1:3001  要密钥（强制统一 Bearer）
+  //
+  // 若身份匹配也剥掉端口，两者都被算成 `127.0.0.1` ⇒ 命中数组里靠前的那条
+  // ⇒ **要求密钥的服务被判成免密钥** ⇒ 前端不显示密钥框 ⇒
+  // 用户配了也连不上，且没有任何报错。
+  assert.equal(findPreset(PRESETS, '', 'http://127.0.0.1:8200/v1')?.id, 'zbiz-local');
+  assert.equal(findPreset(PRESETS, '', 'http://127.0.0.1:3001/v1')?.id, 'freellmapi');
+});
+
+test('端口不同 ⇒ 免密钥结论必须相反', () => {
+  // 这条是上一个用例的**后果断言** —— 也是真会咬人的那个后果。
+  // 命中错预设 ⇒ 密钥框该显示时不显示 ⇒ 用户永远配不上。
+  const zbiz = draftNeedsApiKey(PRESETS, { preset: '', baseUrl: 'http://127.0.0.1:8200/v1' });
+  const free = draftNeedsApiKey(PRESETS, { preset: '', baseUrl: 'http://127.0.0.1:3001/v1' });
+  assert.equal(zbiz, false, 'zbiz-local 免密钥');
+  assert.equal(free, true, 'freellmapi 要密钥');
+  assert.notEqual(zbiz, free, '同 host 不同端口必须给出相反结论');
+});
+
+test('阴性对照：身份判据不是永真 —— 端口相同路径不同仍是同一服务', () => {
+  // 剥端口的错误实现会让这条红：它会把 8200 与 3001 也认成同一个。
+  assert.equal(
+    findPreset(PRESETS, '', 'http://127.0.0.1:8200')?.id,
+    findPreset(PRESETS, '', 'http://127.0.0.1:8200/v1')?.id,
+  );
 });
 
 // ─────────────────────────────────────────────────────────────

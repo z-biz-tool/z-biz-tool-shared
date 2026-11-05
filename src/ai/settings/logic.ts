@@ -16,7 +16,7 @@
  *    「后端放行、前端拦住」，用户看到的是「本地模型配了却用不了」。
  */
 
-import { needsApiKey } from "../privateEndpoint";
+import { needsApiKey, serviceHost } from "../privateEndpoint";
 import type { AiConfigDraft, PresetView } from "./types";
 
 /** 预设分组（界面按组折叠，避免 18 家厂商糊成一片）。 */
@@ -48,10 +48,20 @@ export function groupPresets(presets: PresetView[]): PresetGroup[] {
 /**
  * 找出当前草稿对应的预设。
  *
- * 匹配依据是 **host**，不是整串地址 ——
+ * 匹配依据是 **host + 端口**，不是整串地址 ——
  * `http://localhost:11434/v1` 与 `http://localhost:11434` 是同一个服务，
  * 尾斜杠和 `/v1` 后缀不该影响身份。Rust 侧 `detect_preset()` 也是按 host 反查的，
  * 前端若按整串比较 ⇒ 同一个服务前后端得出不同结论（判据分裂）。
+ *
+ * ## 为什么端口不能剥
+ *
+ * 自建分类下有两条回环预设，**端口是区分它们身份的唯一依据**：
+ * `zbiz-local`（8200，免密钥）与 `freellmapi`（3001，要密钥）。
+ * 剥掉端口后两者都是 `127.0.0.1` ⇒ 命中数组里靠前的那条 ⇒
+ * 要求密钥的服务被判成免密钥 ⇒ 用户永远看不到密钥框。
+ *
+ * 所以这里用 `serviceHost`（留端口），**不是** `privateEndpoint.hostOf`
+ * （那个剥端口，用于「是不是私网」的地址判定）。
  */
 export function findPreset(
   presets: PresetView[],
@@ -62,29 +72,9 @@ export function findPreset(
     const byId = presets.find((p) => p.id === presetId);
     if (byId) return byId;
   }
-  const host = hostOf(baseUrl);
+  const host = serviceHost(baseUrl);
   if (!host) return undefined;
-  return presets.find((p) => hostOf(p.base_url) === host);
-}
-
-/**
- * 从 URL 里取 host（去掉 scheme、userinfo、端口、路径）。
- *
- * 与 `privateEndpoint.ts` 的 `hostOf` 同源实现。
- * 这里**不重新发明**：直接用它，避免两份 host 解析在边界上分叉。
- */
-function hostOf(url: string): string {
-  if (!url) return "";
-  const rest = url.includes("://") ? url.slice(url.indexOf("://") + 3) : url;
-  const hostPort = rest.split("/")[0] ?? "";
-  const afterUser = hostPort.includes("@")
-    ? hostPort.slice(hostPort.lastIndexOf("@") + 1)
-    : hostPort;
-  if (afterUser.startsWith("[")) {
-    const end = afterUser.indexOf("]");
-    return end === -1 ? afterUser : afterUser.slice(0, end + 1);
-  }
-  return afterUser.split(":")[0] ?? "";
+  return presets.find((p) => serviceHost(p.base_url) === host);
 }
 
 /**
