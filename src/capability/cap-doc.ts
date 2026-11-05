@@ -72,6 +72,19 @@ export interface CapDocCommands {
   parseEpub: { args: { path: string }; returns: EpubBook };
   /** 解析 MOBI 章节 */
   parseMobi: { args: { path: string }; returns: EpubBook };
+  /**
+   * 按扩展名分派到具体解析器（epub / mobi / txt / fb2）。
+   *
+   * 前端只需要记一个命令：这本书是什么格式，由能力层判断。
+   * 让每个调用点各抄一份扩展名表，那份表早晚会和实际实现长歪。
+   */
+  parseEbook: { args: { path: string }; returns: EpubBook };
+  /** 解析 TXT 小说（章节按标题行切分，编码自动兜底 GB18030） */
+  parseTxt: { args: { path: string }; returns: EpubBook };
+  /** 解析 FB2（俄文 XML 电子书） */
+  parseFb2: { args: { path: string }; returns: EpubBook };
+  /** 解析 CBZ 漫画（返回图片路径列表） */
+  extractComic: { args: { path: string; cacheRoot: string }; returns: string[] };
   /** 取 EPUB 封面（返回图片路径） */
   getEpubCover: { args: { path: string }; returns: string };
   /** 列出 PDF 页面信息 */

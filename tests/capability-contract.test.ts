@@ -195,6 +195,13 @@ const CRATES: CrateSpec[] = [
     map: {
       parseEpub: "parse_epub",
       parseMobi: "parse_mobi",
+      // 2026-11-05：cap-doc 补齐电子书格式（MOBI 真解析 + TXT/FB2 + CBZ 漫画）。
+      // parse_ebook 是统一入口（前端记一个命令，按扩展名分派）；
+      // parse_txt / parse_fb2 / extract_comic 是新增格式的独立入口。
+      parseEbook: "parse_ebook",
+      parseTxt: "parse_txt",
+      parseFb2: "parse_fb2",
+      extractComic: "extract_comic",
       getEpubCover: "get_epub_cover",
       getPdfPages: "get_pdf_pages",
       extractPdfText: "extract_pdf_text",
@@ -211,6 +218,14 @@ const CRATES: CrateSpec[] = [
       "SUPPORTED_EXTENSIONS",
       // 测试脚手架 TempDir
       "new",
+      // TXT 解析的内部步骤 —— parse_txt 已经把它们串好了，
+      // 前端不需要单独调用（也不是 IPC 命令）。
+      // 判定依据：ebook.rs 里 parse_txt 内部直接调了 split_txt_sections
+      // 与 txt_body_to_html，前端要的是「解析一本 txt」的语义，
+      // 不是「切章节」「转 HTML」这两个中间步骤。
+      "is_chapter_heading",
+      "split_txt_sections",
+      "txt_body_to_html",
     ],
     rustFiles: [
       "src/lib.rs",
